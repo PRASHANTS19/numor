@@ -35,6 +35,7 @@ async function saveInvoiceFromPreview(user, payload) {
                 taxAmount: payload.taxAmount ?? 0,
                 totalAmount: payload.totalAmount,
                 status: 'CONFIRMED',
+                category: payload.category || 'OTHER'
             },
         });
 

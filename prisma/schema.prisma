@@ -79,6 +79,7 @@ model InvoiceBill {
   paidAmount    Decimal  @db.Decimal(15, 2) @default(0.00)
 
   status        String   @default("DRAFT")
+  category      String   @default("OTHER")  
   pdfUrl        String?
   sentAt        DateTime?
   paidAt        DateTime?

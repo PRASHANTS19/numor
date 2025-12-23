@@ -6,9 +6,11 @@ const morgan = require('morgan');
 
 const routes = require('../src/routes/index');
 const errorMiddleware = require('./middlewares/error.middleware');
+const cookieParser = require("cookie-parser");
 
 const app = express();
 
+app.use(cookieParser());
 app.use(express.json());
 app.use(cors());
 app.use(helmet());

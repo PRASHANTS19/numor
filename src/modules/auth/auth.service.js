@@ -27,6 +27,7 @@ async function registerUser(data) {
             orgId: Number(orgId),
             email,
             name,
+            role: "USER",
             userType,
             passwordHash
         }
@@ -40,7 +41,6 @@ async function registerUser(data) {
     const token = signToken({
         userId: safeUser.id,
         orgId: safeUser.orgId,
-        role: safeUser.role,
         userType: safeUser.userType,
     });
 

@@ -11,6 +11,13 @@ router.post(
 );
 
 router.post(
+  '/ocr/uploadInvoiceForAI',
+  auth,
+  upload.single('file'),
+  controller.previewInvoice
+);
+
+router.post(
   '/ocr/saveInvoice',
   auth,
   controller.confirmOCR

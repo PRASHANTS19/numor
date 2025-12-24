@@ -2,6 +2,15 @@ const prisma = require('../../config/database');
 const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
 
+async function previewInvoiceAI(filePath) {
+  const parsed = await aiService.parseInvoiceFromImage(filePath);
+
+  return {
+    source: "gemini-vision",
+    parsedData: parsed,
+    confidence: parsed.confidence || null,
+  };
+}
 
 async function previewInvoiceOCR(filePath) {
     const rawText = await ocrService.extractText(filePath);
@@ -157,4 +166,5 @@ module.exports = {
     saveInvoiceFromPreview,
     listInvoices,
     listInvoiceProducts,
+    previewInvoiceAI
 };

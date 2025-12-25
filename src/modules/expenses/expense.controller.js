@@ -2,6 +2,16 @@
 const { ca } = require('zod/locales');
 const expenseService = require('./expense.service');
 
+exports.previewExpense = async function (req, res) {
+  const filePath = req.file.path;
+  const result = await expenseService.previewExpenseAI(filePath);
+
+  res.json({
+    success: true,
+    data: result,
+  });
+}
+
 exports.previewOCR = async function (req, res) {
   try {
     const filePath = req.file.path;

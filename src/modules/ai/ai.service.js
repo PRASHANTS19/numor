@@ -25,14 +25,25 @@ async function parseInvoiceFromImage(filePath) {
 You are an expert invoice parser.
 Analyze the invoice image and return ONLY valid JSON.
 
-Required fields:
-- vendorName
-- invoiceDate
-- totalAmount
-- taxAmount
-- currency
-- lineItems [{ description, quantity, unitPrice, amount }]
-- confidence (0–1)
+
+JSON format:
+{
+  "invoiceNumber": string,
+  "vendorName": string,
+  "invoiceDate": "YYYY-MM-DD",
+  "dueDate": "YYYY-MM-DD",
+  "subtotal": number,
+  "taxAmount": number,
+  "totalAmount": number,
+  "items": [
+    {
+      "name": string,
+      "quantity": number,
+      "unitPrice": number,
+      "total": number
+    }
+  ]
+}
 
 If any field is missing, return null.
 `;
@@ -77,10 +88,84 @@ If any field is missing, return null.
     throw err;
   }
 }
+async function parseExpenseFromImage(filePath) {
+  const imageBase64 = fs.readFileSync(filePath, {
+    encoding: "base64",
+  });
 
-module.exports = {
-  parseInvoiceFromImage,
-};
+  const prompt = `
+You are a strict JSON generator.
+
+Rules:
+- Return ONLY valid JSON
+- Use DOUBLE QUOTES for all keys and string values
+- Do NOT include comments
+- Do NOT include markdown
+- Do NOT include explanation text
+- If a value is unknown, use null
+- Numbers must be numbers, not strings
+
+JSON schema:
+{
+  "merchant": string | null,
+  "expenseDate": string | null,
+  "totalAmount": number,
+  "category": string | null,
+  "paymentMethod": string | null,
+  "items": [
+    {
+      "name": string | null,
+      "quantity": number,
+      "unitPrice": number,
+      "total": number
+    }
+  ],
+  "confidence": number | null
+}
+If any field is missing, return null.
+`;
+
+  const response = await fetch(
+    `${GEMINI_ENDPOINT}?key=${process.env.GEMINI_API_KEY}`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inline_data: {
+                  mime_type: "image/jpeg", // or image/png
+                  data: imageBase64,
+                },
+              },
+            ],
+          },
+        ],
+      }),
+    }
+  );
+
+  const data = await response.json();
+
+  const text =
+    data?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+  if (!text) {
+    throw new Error("Gemini returned empty response");
+  }
+
+  try {
+    return extractJson(text);
+  } catch (err) {
+    console.error("❌ GEMINI RAW RESPONSE:\n", text);
+    throw err;
+  }
+}
+
 
 async function parseInvoice(ocrText) {
   const prompt = invoicePrompt(ocrText);
@@ -150,4 +235,4 @@ async function parseExpense(ocrText) {
   return JSON.parse(text);
 }
 
-module.exports = { parseInvoice, parseExpense, parseInvoiceFromImage };
+module.exports = { parseInvoice, parseExpense, parseInvoiceFromImage, parseExpenseFromImage };

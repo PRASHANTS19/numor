@@ -2,11 +2,21 @@ const prisma = require('../../config/database');
 const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
 
+
+exports.previewExpenseAI = async function (filePath) {
+  const parsed = await aiService.parseExpenseFromImage(filePath);
+
+  return {
+    source: "gemini-vision",
+    parsedData: parsed,
+    confidence: parsed.confidence || null,
+  };
+}
 exports.previewExpenseOCR = async function (filePath) {
     const rawText = await ocrService.extractText(filePath);
     const parsed = await aiService.parseExpense(rawText);
-    console.log('--- OCR RAW TEXT ---\n', rawText);
-    console.log('Parsed Expense Data:', parsed);
+    // console.log('--- OCR RAW TEXT ---\n', rawText);
+    // console.log('Parsed Expense Data:', parsed);
     return {
         source: 'ocr+ai',
         parsedData: parsed,

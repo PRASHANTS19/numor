@@ -9,6 +9,12 @@ router.post(
   upload.single('file'),
   controller.previewOCR
 );
+router.post(
+  '/ocr/uploadExpenseForAI',
+  auth,
+  upload.single('file'),
+  controller.previewExpense
+);
 
 router.post(
   '/ocr/saveExpense',

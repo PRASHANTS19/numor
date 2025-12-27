@@ -54,8 +54,20 @@ async function login(req, res) {
   }
 }
 
+async function logout(req, res) {
+  res.clearCookie("access_token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "strict",
+  });
+  res.json({
+    success: true,
+    message: "Logout successful",
+  });
+}
 
 module.exports = {
   register,
   login,
+  logout,
 };

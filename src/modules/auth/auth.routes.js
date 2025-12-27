@@ -7,8 +7,13 @@ router.post(
     '/register', 
     validate(registerSchema), 
     controller.register);
+
 router.post(
     '/login', 
     controller.login);
+
+router.post(
+    '/logout', 
+    controller.logout);
 
 module.exports = router;

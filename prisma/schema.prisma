@@ -129,17 +129,17 @@ model InvoiceBill {
   shippingCost  Decimal  @db.Decimal(15, 2) @default(0.00)
   totalAmount   Decimal  @db.Decimal(15, 2)
   paidAmount    Decimal  @db.Decimal(15, 2) @default(0.00) //What client has already paid
-  balanceDue    Decimal  @db.Decimal(15, 2) //What’s still pending
+  balanceDue    Decimal  @db.Decimal(15, 2) @default(0.00) //What’s still pending
 
   status        String   @default("DRAFT")  // DRAFT | SENT | PAID | OVERDUE
   category      String   @default("OTHER")  
-  pdfUrl        String?
+  pdfKey        String?
   sentAt        DateTime?
   paidAt        DateTime?
 
   // Seller Snapshot
-  sellerName      String
-  sellerAddress   String
+  sellerName      String?
+  sellerAddress   String?
   sellerEmail     String?
   sellerPhone     String?
   sellerCountry   String?
@@ -148,9 +148,9 @@ model InvoiceBill {
   lutFiled        Boolean  @default(false) //Confirms GST zero-rated export compliance
 
   // Buyer Snapshot
-  buyerName       String
-  buyerAddress    String
-  buyerCountry    String
+  buyerName       String?
+  buyerAddress    String?
+  buyerCountry    String?
   buyerTaxId      String? // VAT / EIN / GSTIN
 
   // Tax & Compliance
@@ -175,11 +175,11 @@ model InvoiceBill {
   // Legal
   jurisdiction    String? // Which country’s laws apply in case of dispute.
   lateFeePolicy   String? //Penalty or interest for delayed payments.
-  notes           Text? //Free-text section for compliance or special instructions
+  notes           String? //Free-text section for compliance or special instructions
 
-  pdfUrl        String? //Stored invoice copy
-  sentAt        DateTime? //Audit trail
-  paidAt        DateTime? //System Tracking
+  // create invoice pdf
+  pdfStatus   String   @default("NOT_STARTED") // NOT_STARTED | QUEUED | PROCESSING | READY | FAILED
+  confirmedAt DateTime?
 
   organization  Organization @relation(fields: [orgId], references: [id])
   customer      User         @relation(fields: [customerId], references: [id])

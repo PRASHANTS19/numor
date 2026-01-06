@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 12px; }
+    .header { display: flex; justify-content: space-between; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; }
+    th { background-color: #f4f4f4; }
+  </style>
+</head>
+
+<body>
+
+  <div class="header">
+    <div>
+      <h2>{{sellerName}}</h2>
+      <p>{{sellerAddress}}</p>
+      <p>{{sellerTaxId}}</p>
+    </div>
+
+    <div>
+      <h3>Invoice #{{invoiceNumber}}</h3>
+      <p>Issue Date: {{issueDate}}</p>
+      <p>Due Date: {{dueDate}}</p>
+    </div>
+  </div>
+
+  <hr/>
+
+  <h3>Bill To</h3>
+  <p>{{buyerName}}</p>
+  <p>{{buyerAddress}}</p>
+  <p>{{buyerCountry}}</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th>Qty</th>
+        <th>Unit Price</th>
+        <th>Tax</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {{#each items}}
+      <tr>
+        <td>{{itemName}}</td>
+        <td>{{quantity}}</td>
+        <td>{{unitPrice}}</td>
+        <td>{{taxRate}}%</td>
+        <td>{{totalPrice}}</td>
+      </tr>
+      {{/each}}
+    </tbody>
+  </table>
+
+  <h3>Total</h3>
+  <p>Subtotal: {{subtotal}}</p>
+  <p>Tax: {{taxAmount}}</p>
+  <p><strong>Grand Total: {{totalAmount}} {{currency}}</strong></p>
+
+</body>
+</html>

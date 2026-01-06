@@ -3,24 +3,24 @@ const auth = require('../../middlewares/auth.middleware');
 const upload = require('../../config/ocr');
 const controller = require('./invoice.controller');
 
-router.post(
-  '/ocr/uploadInvoice',
-  auth,
-  upload.single('file'),
-  controller.previewOCR
-);
+// router.post(
+//   '/ocr/uploadInvoice',
+//   auth,
+//   upload.single('file'),
+//   controller.previewOCR
+// );
 
 router.post(
-  '/ocr/uploadInvoiceForAI',
+  '/parseInvoice',
   auth,
   upload.single('file'),
   controller.previewInvoice
 );
 
 router.post(
-  '/ocr/saveInvoice',
+  '/saveInvoice',
   auth,
-  controller.confirmOCR
+  controller.confirmAndSaveInvoice
 )
 
 router.get(
@@ -35,5 +35,22 @@ router.get(
   controller.listInvoiceProduct
 )
 
+router.post(
+  '/createInvoice',
+  auth,
+  controller.confirmAndCreateInvoice
+)
+
+router.get(
+  '/:id', 
+  auth, 
+  controller.getInvoice
+);
+
+router.get(
+  '/:id/pdf',
+  auth, 
+  controller.getInvoicePdf
+);
 
 module.exports = router;

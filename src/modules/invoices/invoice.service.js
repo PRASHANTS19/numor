@@ -1,15 +1,17 @@
 const prisma = require('../../config/database');
 const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
+const invoiceQueue = require('../../queues/invoice.queue');
+
 
 async function previewInvoiceAI(filePath) {
-  const parsed = await aiService.parseInvoiceFromFile(filePath);
+    const parsed = await aiService.parseInvoiceFromFile(filePath);
 
-  return {
-    source: "gemini-vision",
-    parsedData: parsed,
-    confidence: parsed.confidence || null,
-  };
+    return {
+        source: "gemini-vision",
+        parsedData: parsed,
+        confidence: parsed.confidence || null,
+    };
 }
 
 async function previewInvoiceOCR(filePath) {
@@ -93,9 +95,6 @@ async function listInvoiceProducts(invoiceId, page, limit) {
         skip: offset,
     })
 }
-
-
-
 // async function saveConfirmedInvoice(invoiceId, parsed) {
 //     console.log('Saving confirmed invoice data:', parsed);
 
@@ -167,11 +166,88 @@ async function listInvoiceProducts(invoiceId, page, limit) {
 //     });
 // }
 
+async function confirmAndCreateInvoice(user, data) {
+    // 1) Calculate totals
+    const subtotal = data.items.reduce(
+        (s, i) => s + i.quantity * i.unitPrice,
+        0
+    );
+
+    const taxAmount = data.items.reduce(
+        (s, i) => s + (i.quantity * i.unitPrice * i.taxRate) / 100,
+        0
+    );
+
+    const totalAmount = subtotal + taxAmount;
+
+    // 2) Create directly as SENT (or whatever your "confirmed" status is)
+    console.log("user in jwt token is", user.userId, "and orgId is", user.orgId);
+    const invoice = await prisma.invoiceBill.create({
+        data: {
+            orgId: user.orgId,
+            customerId: user.userId,
+            ...data,
+            subtotal,
+            taxAmount,
+            totalAmount,
+            balanceDue: totalAmount,
+            status: 'SENT',          // <— previously probably 'DRAFT'
+            confirmedAt: new Date(), // <— confirmation timestamp
+            pdfStatus: 'QUEUED',     // <— directly queue PDF generation
+            items: {
+                create: data.items
+            }
+        },
+        include: { items: true }
+    });
+
+    // 3) Queue PDF generation
+    await invoiceQueue.enqueue({ invoiceId: invoice.id });
+
+    return invoice;
+};
+
+
+async function getInvoice(user, id) {
+    return prisma.invoiceBill.findFirstOrThrow({
+        where: { id: BigInt(id), orgId: user.orgId },
+        include: { items: true }
+    });
+};
+
+async function getSignedPdfUrl(user, id) {
+    const invoice = await prisma.invoiceBill.findFirst({
+        where: {
+            id: BigInt(id),
+            orgId: user.orgId
+        }
+    });
+
+    if (!invoice) {
+        throw new Error('Invoice not found');
+    }
+
+    if (invoice.pdfStatus !== 'READY') {
+        throw new Error('PDF not ready');
+    }
+
+    if (!invoice.pdfKey) {
+        throw new Error('PDF not generated');
+    }
+
+    const storage = require('../../storage/storage.service');
+    return storage.getSignedUrl(invoice.pdfKey);
+}
+
 
 module.exports = {
     previewInvoiceOCR,
     saveInvoiceFromPreview,
     listInvoices,
     listInvoiceProducts,
-    previewInvoiceAI
+    previewInvoiceAI,
+    confirmAndCreateInvoice,
+    getInvoice,
+    getSignedPdfUrl
+
 };

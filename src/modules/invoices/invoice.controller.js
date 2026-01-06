@@ -14,20 +14,20 @@ exports.previewInvoice = async function (req, res) {
 }
 
 
-exports.previewOCR = async function (req, res) {
-  try {
-    const filePath = req.file.path;
+// exports.previewOCR = async function (req, res) {
+//   try {
+//     const filePath = req.file.path;
 
-    const preview = await invoiceService.previewInvoiceOCR(filePath);
+//     const preview = await invoiceService.previewInvoiceOCR(filePath);
 
-    res.json({ success: true, data: preview });
-  } catch (err) {
-    console.log('Error in previewOCR:', err);
-    res.status(500).json({ success: false, message: err.message });
-  }
-}
+//     res.json({ success: true, data: preview });
+//   } catch (err) {
+//     console.log('Error in previewOCR:', err);
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// }
 
-exports.confirmOCR = async function (req, res) {
+exports.confirmAndSaveInvoice = async function (req, res) {
   try {
     const payload = req.body;
     const user = req.user; // from auth middleware
@@ -44,25 +44,67 @@ exports.confirmOCR = async function (req, res) {
   }
 };
 
-exports.listInvoices = async function(req, res){
-  try{
-    const {page, limit} = req.query;
+exports.listInvoices = async function (req, res) {
+  try {
+    const { page, limit } = req.query;
     const user = req.user;
     const invoices = await invoiceService.listInvoices(user, Number(page), Number(limit));
-    res.json({success: true, data: invoices});
-  } catch(err){
+    res.json({ success: true, data: invoices });
+  } catch (err) {
     console.error('Error in listInvoices:', err);
-    res.status(500).json({success: false, message: err.message});
+    res.status(500).json({ success: false, message: err.message });
   }
 }
 
-exports.listInvoiceProduct = async function(req, res){    
-  try{
-    const {page, limit} = req.query;
+exports.listInvoiceProduct = async function (req, res) {
+  try {
+    const { page, limit } = req.query;
     const products = await invoiceService.listInvoiceProducts(req.params.id, Number(page), Number(limit));
-    res.json({success: true, data: products});
-  } catch(err){
+    res.json({ success: true, data: products });
+  } catch (err) {
     console.error('Error in listInvoiceProduct:', err);
-    res.status(500).json({success: false, message: err.message});
+    res.status(500).json({ success: false, message: err.message });
   }
 }
+
+exports.confirmAndCreateInvoice = async function (req, res) {
+  try {
+    const user = req.user;
+    const payload = req.body;
+
+    const invoice = await invoiceService.confirmAndCreateInvoice(user, payload);
+
+    return res.status(201).json({
+      success: true,
+      data: invoice
+    });
+  } catch (err) {
+    console.error('Error in confirmAndCreateInvoice:', err);
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};
+
+
+exports.getInvoice = async (req, res) => {
+  const invoice = await invoiceService.getInvoice(req.user, req.params.id);
+  res.json(invoice);
+};
+
+exports.getInvoicePdf = async (req, res) => {
+  try {
+    const url = await invoiceService.getSignedPdfUrl(
+      req.user,
+      req.params.id
+    );
+
+    return res.json({ success: true, url });
+  } catch (err) {
+    return res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+};

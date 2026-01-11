@@ -354,6 +354,7 @@ model CAProfile {
 
 model CABooking {
   id BigInt @id @default(autoincrement())
+  bookingCode String @unique
 
   userId      BigInt // customer
   caProfileId BigInt

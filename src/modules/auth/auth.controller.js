@@ -61,6 +61,7 @@ async function logout(req, res) {
     httpOnly: true,
     secure: true,
     sameSite: "strict",
+    domain: ".numor.app",
   });
   res.json({
     success: true,

@@ -53,9 +53,9 @@ router.delete(
 )
 
 router.get(
-  '/:id/pdf',
+  '/:id/receipt',
   auth, 
-  controller.getExpensePdf
+  controller.getExpenseReceipt
 );
 
 module.exports = router;

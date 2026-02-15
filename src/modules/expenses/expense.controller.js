@@ -120,9 +120,9 @@ exports.deleteExpense = async (req, res) => {
   }
 };
 
-exports.getExpensePdf = async (req, res) => {
+exports.getExpenseReceipt = async (req, res) => {
   try {
-    const result = await expenseService.getSignedPdfUrl(
+    const result = await expenseService.getSignedUrl(
       req.user,
       req.params.id
     );

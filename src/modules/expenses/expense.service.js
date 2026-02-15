@@ -266,7 +266,7 @@ exports.deleteExpense = async (user, expenseId) => {
   });
 };
 
-exports.getSignedPdfUrl = async(user, id) => {
+exports.getSignedUrl = async(user, id) => {
     const expense = await prisma.expenseBill.findFirst({
         where: {
             id: BigInt(id),

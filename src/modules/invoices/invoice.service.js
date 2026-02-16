@@ -197,7 +197,7 @@ async function saveInvoiceFromPreview(user, payload) {
     });
 }
 
-async function listInvoices(user, page = 1, limit = 10) {
+async function listInvoices(user, page = 1, limit = 10, startDate, endDate) {
     page = Number(page);
     limit = Number(limit);
 
@@ -205,12 +205,30 @@ async function listInvoices(user, page = 1, limit = 10) {
     if (Number.isNaN(limit) || limit < 1) limit = 10;
 
     const offset = (page - 1) * limit;
+
+    // Build dynamic where condition
+    const where = {
+        customerId: BigInt(user.userId),
+    };
+    // Add date filter only if provided
+    if (startDate || endDate) {
+        where.issueDate = {};
+
+        if (startDate) {
+            where.issueDate.gte = new Date(startDate);
+        }
+
+        if (endDate) {
+            // Optional: make endDate inclusive for whole day
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            where.issueDate.lte = end;
+        }
+    }
     return prisma.invoiceBill.findMany({
-        where: {
-            customerId: BigInt(user.userId),
-        },
+        where,
         include: {
-            items: true,
+            // items: true,
         },
         orderBy: {
             createdAt: 'desc',

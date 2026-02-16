@@ -32,9 +32,9 @@ exports.confirmAndSaveInvoice = async function (req, res) {
 
 exports.listInvoices = async function (req, res) {
   try {
-    const { page, limit } = req.query;
+    const { page, limit, startDate, endDate } = req.query;
     const user = req.user;
-    const invoices = await invoiceService.listInvoices(user, Number(page), Number(limit));
+    const invoices = await invoiceService.listInvoices(user, Number(page), Number(limit), startDate, endDate);
     res.json({ success: true, data: invoices });
   } catch (err) {
     console.error('Error in listInvoices:', err);

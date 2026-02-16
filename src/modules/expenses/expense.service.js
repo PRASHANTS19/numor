@@ -149,19 +149,37 @@ exports.saveExpenseFromPreview = async (user, payload) => {
   });
 };
 
-exports.listExpenses = async (user, page = 1, limit = 10) => {
+exports.listExpenses = async (user, page = 1, limit = 10, startDate, endDate) => {
   page = Number(page);
   limit = Number(limit);
 
   if (Number.isNaN(page) || page < 1) page = 1;
   if (Number.isNaN(limit) || limit < 1) limit = 10;
   const offset = (page - 1) * limit;
+
+    // Build dynamic where condition
+    const where = {
+        userId: BigInt(user.userId),
+    };
+    // Add date filter only if provided
+    if (startDate || endDate) {
+        where.expenseDate = {};
+
+        if (startDate) {
+            where.expenseDate.gte = new Date(startDate);
+        }
+
+        if (endDate) {
+            // Optional: make endDate inclusive for whole day
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            where.expenseDate.lte = end;
+        }
+    }
   return prisma.expenseBill.findMany({
-    where: {
-      userId: BigInt(user.userId),
-    },
+    where,
     include: {
-      items: true,
+      // items: true,
     },
     orderBy: {
       createdAt: 'desc',

@@ -41,9 +41,9 @@ exports.confirmExpense = async function (req, res) {
 
 exports.listExpenses = async function(req, res){
   try{
-    const {limit, page} = req.query;
+    const {limit, page, startDate, endDate} = req.query;
     const user = req.user; 
-    const expenses = await expenseService.listExpenses(user, Number(page), Number(limit));
+    const expenses = await expenseService.listExpenses(user, Number(page), Number(limit), startDate, endDate);
     res.json({success: true, data: expenses});
   } catch(err){
     console.error('Error in listExpenses:', err);

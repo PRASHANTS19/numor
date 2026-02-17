@@ -44,7 +44,7 @@ const listInvoiceItems = tool(
     });
   },
   {
-    name: "listInvoiceItems",
+    name: "ListInvoiceItems",
     description: `
 Fetch line items for a specific invoice of the authenticated user.
 Use when user asks:

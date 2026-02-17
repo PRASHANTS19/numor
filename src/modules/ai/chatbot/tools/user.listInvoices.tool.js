@@ -1,19 +1,26 @@
 // const { tool } = require("@langchain/core/tools");
-const {tool} = require("langchain");
+const { tool } = require("@langchain/core/tools");
 const prisma = require("../../../../config/database");
 
 const getInvoices = tool(
-  async ({ limit = 10 }, config) => {
-    const userId = config.config.configurable.context.userId;
+  async ({ limit = 10, status }, config) => {
+    const userId =
+      config?.configurable?.context?.userId;
 
+    // if (!userId) {
+    //   throw new Error("Missing userId in context");
+    // }
     if (!userId) {
-      throw new Error("userId missing from context");
+      return { error: "User context missing" };
     }
 
+    const where = {
+      customerId: BigInt(userId),
+      ...(status ? { status } : {}),
+    };
+
     const invoices = await prisma.invoiceBill.findMany({
-      where: {
-        customerId: BigInt(userId),
-      },
+      where,
       orderBy: { issueDate: "desc" },
       take: limit,
       select: {
@@ -25,32 +32,26 @@ const getInvoices = tool(
         totalAmount: true,
         balanceDue: true,
         currency: true,
-        buyerName: true,
       },
     });
-    return JSON.stringify({
-      count: invoices.length,
-      invoices,
-    });
+
+    return JSON.stringify(invoices);
   },
   {
     name: "getInvoices",
-//     description: `
-// Fetch invoices for the currently authenticated user.
-// Use when user asks:
-// - Anything about invoices
-// - show invoices
-// - list invoices
-// - recent invoices
-// - overdue invoices
-// - count invoices
-// `,
-description:`
+    description: `
 Fetch invoices for the authenticated user.
 Returns raw invoice data. 
 LLM should handle filtering, comparison, and analysis.
 You have access to tools that fetch raw data from the database.
-
+Fetch invoices for the currently authenticated user.
+Use when user asks:
+- Anything about invoices
+- show invoices
+- list invoices
+- recent invoices
+- overdue invoices
+- count invoices
 IMPORTANT RULES:
 - Tools ONLY retrieve data.
 - You MUST perform all filtering, comparison, sorting, math, and reasoning yourself.
@@ -62,7 +63,7 @@ IMPORTANT RULES:
       properties: {
         status: {
           type: "string",
-          enum: ["DRAFT", "SENT", "PAID", "OVERDUE"],
+          enum: ["DRAFT", "SENT", "PAID", "OVERDUE", "UNPAID"],
         },
         limit: { type: "number" },
       },

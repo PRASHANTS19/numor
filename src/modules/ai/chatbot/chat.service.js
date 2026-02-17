@@ -37,8 +37,7 @@ async function handleChat(user, message) {
       },
     }
   );
-
-
+  console.log(JSON.stringify(result, null, 2));
   return result.messages.at(-1)?.content;
 }
 

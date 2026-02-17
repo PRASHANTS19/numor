@@ -1,6 +1,6 @@
 const { success } = require("zod");
 const { get } = require("./chat.route");
-const { handleChat, getChatHistory } = require("./chat.service");
+const { handleChat, getChatHistory, deleteChatHistory } = require("./chat.service");
 
 function normalizeMessages(messages = []) {
   return messages.map(m => ({
@@ -52,5 +52,23 @@ async function chatHistory(req, res) {
   }
 }
 
+async function deleteHistory(req, res) {
+  try {
+    const result = await deleteChatHistory(req.user);
 
-module.exports = { chat, chatHistory };
+    return res.json({
+      success: true,
+      message: "Chat history deleted successfully",
+      deletedCount: result.deleted,
+    });
+  } catch (error) {
+    console.error("Delete chat history error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete chat history",
+    });
+  }
+}
+
+module.exports = { chat, chatHistory, deleteHistory };

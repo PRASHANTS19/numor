@@ -2,8 +2,10 @@ const bcrypt = require('bcrypt');
 const prisma = require('../../config/database');
 const { signToken } = require('../../config/jwt');
 const fetch = require('node-fetch');
+const crypto = require("crypto");
 
 async function registerUser(data) {
+    const sessionId = crypto.randomUUID();
     const { user } = data;
 
     if (!user.email) {
@@ -36,6 +38,7 @@ async function registerUser(data) {
                         orgId: upgradedUser.orgId.toString(),
                         role: upgradedUser.role,
                         userType: upgradedUser.userType,
+                        sessionId
                     },
                     process.env.JWT_SECRET,
                     { expiresIn: '7d' }
@@ -80,6 +83,7 @@ async function registerUser(data) {
                 orgId: org.id.toString(),
                 role: newUser.role,
                 userType: newUser.userType,
+                sessionId
             },
             process.env.JWT_SECRET,
             { expiresIn: '7d' }
@@ -90,6 +94,7 @@ async function registerUser(data) {
 }
 
 async function loginUser(email, password) {
+    const sessionId = crypto.randomUUID();
     // 1. Find user
     const user = await prisma.user.findUnique({
         where: { email },
@@ -118,6 +123,7 @@ async function loginUser(email, password) {
         orgId: safeUser.orgId,
         role: safeUser.role,
         userType: safeUser.userType,
+        sessionId
     });
 
     return { safeUser, token };
@@ -125,6 +131,7 @@ async function loginUser(email, password) {
 }
 
 async function googleAuth(code, user_type_for_signup) {
+    const sessionId = crypto.randomUUID();
 
     if (!code) {
         throw new Error("Authorization code is required");
@@ -219,6 +226,7 @@ async function googleAuth(code, user_type_for_signup) {
         orgId: user.orgId,
         role: user.role,
         userType: user.userType,
+        sessionId
     });
 
     return { token, user };

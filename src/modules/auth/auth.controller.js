@@ -1,4 +1,5 @@
 const authService = require("./auth.service");
+const { deleteChatHistory } = require("../ai/chatbot/chat.service")
 
 async function register(req, res) {
   try {
@@ -16,7 +17,7 @@ async function register(req, res) {
       success: true,
       message: "User registered successfully",
       data: {
-        token, 
+        token,
         // user 
       },
     });
@@ -47,8 +48,8 @@ async function login(req, res) {
       success: true,
       message: "Login successful",
       data: {
-          token,
-          safeUser, // safe user info
+        token,
+        safeUser, // safe user info
       },
     });
   } catch (error) {
@@ -67,10 +68,21 @@ async function logout(req, res) {
   //   sameSite: "none",
   //   // domain: ".numor.app",
   // });
-  res.json({
-    success: true,
-    message: "Logout successful",
-  });
+  try {
+    const result = await deleteChatHistory(req.user);
+
+    res.json({
+      success: true,
+      message: "Logout successful. Chat history cleared.",
+      result
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Logout failed",
+    });
+  }
 }
 
 async function googleLogin(req, res, next) {

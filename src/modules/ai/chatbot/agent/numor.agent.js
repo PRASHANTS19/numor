@@ -24,7 +24,7 @@ const contextSchema = {
 const baseModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   temperature: 0.2,
-  maxOutputTokens: 2048,
+  maxOutputTokens: 1048,
 });
 // const checkpointer = new MemorySaver();
 // ---- POSTGRES CHECKPOINTER ----

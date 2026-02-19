@@ -3,14 +3,6 @@ const { get } = require("./chat.route");
 const { handleChat, getChatHistory, deleteChatHistory } = require("./chat.service");
 const chatLogger = require("../../../utils/chat.logger");
 
-function normalizeMessages(messages = []) {
-  return messages.map(m => ({
-    role: m.type === "human" ? "user" : "assistant",
-    content: m.content,
-    id: m.id,
-  }));
-}
-
 // async function chat(req, res) {
 //   try {
 //     const user = req.user;
@@ -73,10 +65,10 @@ async function chatHistory(req, res) {
   try {
     const user = req.user;
     const message = await getChatHistory(user);
-    console.log("Fetched chat history:", message);
+    // console.log("Fetched chat history:", message);
     return res.json({
       success: true,
-      history: normalizeMessages(message)
+      history: message
     });
   }
   catch (err) {

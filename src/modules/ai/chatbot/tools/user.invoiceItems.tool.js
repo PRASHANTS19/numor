@@ -2,17 +2,20 @@ const { tool } = require("@langchain/core/tools");
 const prisma = require("../../../../config/database");
 
 const listInvoiceItems = tool(
-  async ({ invoiceId }, config) => {
+  async ({ invoiceNumber }, config) => {
     const userId = config.config.configurable.context.userId;
 
     if (!userId) {
       throw new Error("userId missing from context");
     }
 
+    if (!invoiceNumber) {
+      throw new Error("invoiceNumber is required");
+    }
     // Ensure invoice belongs to the current user
     const invoice = await prisma.invoiceBill.findFirst({
       where: {
-        id: BigInt(invoiceId),
+        invoiceNumber: invoiceNumber,
         customerId: BigInt(userId),
       },
       select: { id: true },
@@ -24,7 +27,7 @@ const listInvoiceItems = tool(
 
     const items = await prisma.invoiceBillItem.findMany({
       where: {
-        invoiceId: BigInt(invoiceId),
+        invoiceId: invoice.id,
       },
       orderBy: { createdAt: "asc" },
       select: {
@@ -56,12 +59,12 @@ Use when user asks:
     schema: {
       type: "object",
       properties: {
-        invoiceId: {
+        invoiceNumber: {   // ✅ MATCH FUNCTION PARAM
           type: "string",
-          description: "Invoice ID to fetch line items for",
+          description: "Visible invoice number (e.g., INV-1001XYZ)",
         },
       },
-      required: ["invoiceId"],
+      required: ["invoiceNumber"], // ✅ MATCH
     },
   }
 );

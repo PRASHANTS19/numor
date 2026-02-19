@@ -10,7 +10,7 @@ const { fetchCASlots } = require("../tools/caSlot.tool");
 const { fetchCAReviews } = require("../tools/caReview.tool");
 const { fetchCABookings } = require("../tools/caBooking.tool");
 const summaryMiddleware = require("../middleware/summarizationMiddleware");
-
+const {getExpenseDetails} =  require("../tools/user.expenseItems.tool");
 const contextSchema = {
   type: "object",
   properties: {
@@ -46,7 +46,8 @@ const numorAgent = createAgent({
     fetchCASlots,
     fetchCAReviews,
     fetchCABookings,
-    listInvoiceItems
+    listInvoiceItems,
+    getExpenseDetails 
   ],
   checkpointer,
   contextSchema,

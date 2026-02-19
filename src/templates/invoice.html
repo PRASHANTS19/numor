@@ -249,16 +249,24 @@
             <div class="footer">
                <div>
                   <h4>Bank / Payment Details</h4>
-                  <p><strong>Bank Name:</strong> {{bankDetails.bankName}}</p>
-                  <p><strong>Account Name:</strong> {{bankDetails.accountName}}</p>
-                  <p><strong>Account Number:</strong> {{bankDetails.accountNumber}}</p>
-                  <p><strong>IFSC:</strong> {{bankDetails.ifsc}}</p>
-                  {{#if bankDetails.swift}}
-                  <p><strong>SWIFT:</strong> {{bankDetails.swift}}</p>
-                  {{/if}}
-                  {{#if bankAddress}}
-                  <p><strong>Bank Address:</strong> {{bankAddress}}</p>
-                  {{/if}}
+                   {{#if bankDetails.bankName}}
+                   <p><strong>Bank Name:</strong> {{bankDetails.bankName}}</p>
+                   {{/if}}
+                   {{#if bankDetails.accountName}}
+                   <p><strong>Account Name:</strong> {{bankDetails.accountName}}</p>
+                   {{/if}}
+                   {{#if bankDetails.accountNumber}}
+                   <p><strong>Account Number:</strong> {{bankDetails.accountNumber}}</p>
+                   {{/if}}
+                   {{#if bankDetails.ifsc}}
+                   <p><strong>IFSC:</strong> {{bankDetails.ifsc}}</p>
+                   {{/if}}
+                   {{#if bankDetails.swift}}
+                   <p><strong>SWIFT:</strong> {{bankDetails.swift}}</p>
+                   {{/if}}
+                   {{#if bankAddress}}
+                   <p><strong>Bank Address:</strong> {{bankAddress}}</p>
+                   {{/if}}
                </div>
                <div>
                   <h4>Notes / Terms</h4>

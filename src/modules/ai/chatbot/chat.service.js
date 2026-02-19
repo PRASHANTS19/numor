@@ -2,6 +2,7 @@ const { numorAgent } = require("../chatbot/agent/numor.agent");
 const { resolveUserContext } = require("./context/chat.resolveUserContext"); // unified context
 const { buildSystemPrompt } = require("../chatbot/agent/system.prompt");
 const { RemoveMessage } = require("@langchain/core/messages");
+const chatLogger = require("../../../utils/chat.logger");
 
 /*
 current flow
@@ -14,33 +15,62 @@ LLM calls tool: getInvoices({ status: "OVERDUE", month: "Dec" })
 Tool returns ONLY relevant rows
 */
 async function handleChat(user, message) {
-  // const { baseContext, roleContext } = await resolveUserContext(user);
+  const agentStart = Date.now();
 
-  // const systemPromptContent = buildSystemPrompt({
-  //   baseContext,
-  //   roleContext,
-  // });
-  const result = await numorAgent.invoke(
-    {
-      messages: [
-        // { role: "system", content: systemPromptContent },
-        { role: "user", content: message },
-      ],
-    },
-    {
-      configurable: {
-        thread_id: `session-${user.sessionId}`,
-        context: {
-          userId: user.userId.toString(),
-          role: user.role,
-          orgId: user.orgId,
-        },
+  try {
+    chatLogger.info({
+      event: "CHAT_REQUEST_RECEIVED",
+      userId: user.userId,
+      sessionId: user.sessionId,
+      role: user.role,
+      messageLength: message.length,
+    });
+    const result = await numorAgent.invoke(
+      {
+        messages: [
+          // { role: "system", content: systemPromptContent },
+          { role: "user", content: message },
+        ],
       },
-    }
-  );
-  console.log(JSON.stringify(result, null, 2));
-  return result.messages.at(-1)?.content;
+      {
+        configurable: {
+          thread_id: `session-${user.sessionId}`,
+          context: {
+            userId: user.userId.toString(),
+            role: user.role,
+            orgId: user.orgId,
+          },
+        },
+      }
+    );
+    const agentLatency = Date.now() - agentStart;
+
+    chatLogger.info({
+      event: "AGENT_EXECUTION_COMPLETED",
+      agentLatencyMs: agentLatency,
+      userId: user.userId,
+      sessionId: user.sessionId,
+    });
+
+    // console.log(JSON.stringify(result, null, 2));
+    return result.messages.at(-1)?.content;
+  }
+  catch (error) {
+    const agentLatency = Date.now() - agentStart;
+
+    chatLogger.error({
+      event: "CHAT_ERROR",
+      userId: user.userId,
+      sessionId: user.sessionId,
+      agentLatencyMs: agentLatency,
+      error: error.message,
+      stack: error.stack,
+    });
+
+    throw error;
+  }
 }
+
 
 async function getChatHistory(user) {
   const threadId = `session-${user.sessionId}`;
@@ -49,7 +79,7 @@ async function getChatHistory(user) {
       thread_id: threadId,
     },
   });
-    // console.log("RAW STATE:", JSON.stringify(state.values.messages, null, 2));
+  // console.log("RAW STATE:", JSON.stringify(state.values.messages, null, 2));
 
   return normalizeMessages(state?.values?.messages ?? []);
 

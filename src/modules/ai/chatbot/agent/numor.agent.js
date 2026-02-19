@@ -10,7 +10,8 @@ const { fetchCASlots } = require("../tools/caSlot.tool");
 const { fetchCAReviews } = require("../tools/caReview.tool");
 const { fetchCABookings } = require("../tools/caBooking.tool");
 const summaryMiddleware = require("../middleware/summarizationMiddleware");
-const {getExpenseDetails} =  require("../tools/user.expenseItems.tool");
+const { getExpenseDetails } = require("../tools/user.expenseItems.tool");
+const chatLogger = require("../../../../utils/chat.logger");
 const contextSchema = {
   type: "object",
   properties: {
@@ -23,7 +24,7 @@ const contextSchema = {
 const baseModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   temperature: 0.2,
-  maxOutputTokens: 5000,
+  maxOutputTokens: 2048,
 });
 // const checkpointer = new MemorySaver();
 // ---- POSTGRES CHECKPOINTER ----
@@ -42,13 +43,14 @@ const numorAgent = createAgent({
   model: baseModel,
   tools: [
     getInvoices,
-    getExpenses,
+    getExpenses,    
     fetchCASlots,
     fetchCAReviews,
     fetchCABookings,
     listInvoiceItems,
-    getExpenseDetails 
+    getExpenseDetails
   ],
+  systemPrompt: SYSTEM_PROMPT, 
   checkpointer,
   contextSchema,
   middleware: [

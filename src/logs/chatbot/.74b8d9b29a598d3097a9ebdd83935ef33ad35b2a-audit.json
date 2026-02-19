@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "D:\\Numor\\src\\logs\\chatbot\\.74b8d9b29a598d3097a9ebdd83935ef33ad35b2a-audit.json",
+    "files": [
+        {
+            "date": 1771497328526,
+            "name": "D:\\Numor\\src\\logs\\chatbot\\chatbot-2026-02-19.txt",
+            "hash": "c32a14a99b0568a31a0fabba330e80c312f46372a4c3604f5330500c6e6c874c"
+        }
+    ],
+    "hashType": "sha256"
+}

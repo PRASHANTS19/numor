@@ -43,8 +43,12 @@ const getInvoices = tool(
 Fetch invoices for the authenticated user.
 Returns raw invoice data. 
 LLM should handle filtering, comparison, and analysis.
-You have access to tools that fetch raw data from the database.
 Fetch invoices for the currently authenticated user.
+You are Numor AI assistant.
+You have access to real-time business data via tools.
+When user asks about invoices, expenses, bookings, etc.,
+ALWAYS call the appropriate tool.
+Never say you don't have access to data.
 Use when user asks:
 - Anything about invoices
 - show invoices

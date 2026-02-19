@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
-
+const requestLogger = require("../src/middlewares/requestLogger.middleware");
 const routes = require('../src/routes/index');
 const errorMiddleware = require('./middlewares/error.middleware');
 // const cookieParser = require("cookie-parser");
@@ -38,6 +38,7 @@ app.use(cors(
         credentials: true,  
     }
 ));
+app.use(requestLogger);
 app.use(helmet());
 app.use(morgan('dev'));
 

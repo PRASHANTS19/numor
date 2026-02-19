@@ -14,7 +14,7 @@ LLM calls tool: getInvoices({ status: "OVERDUE", month: "Dec" })
 Tool returns ONLY relevant rows
 */
 async function handleChat(user, message) {
-  const { baseContext, roleContext } = await resolveUserContext(user);
+  // const { baseContext, roleContext } = await resolveUserContext(user);
 
   // const systemPromptContent = buildSystemPrompt({
   //   baseContext,

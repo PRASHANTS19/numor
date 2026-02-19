@@ -179,7 +179,7 @@ exports.listExpenses = async (user, page = 1, limit = 10, startDate, endDate) =>
   return prisma.expenseBill.findMany({
     where,
     include: {
-      // items: true,
+      items: true,
     },
     orderBy: {
       createdAt: 'desc',

@@ -6,11 +6,12 @@ exports.parseExpense = async function (req, res) {
   // const filePath = req.file.path;
   try {
 
-    const result = await expenseService.previewExpenseAI(req.file);
-    res.json({
-      success: true,
-      data: result,
-    });
+  const result = await expenseService.previewExpenseAI(req.file);
+  console.log('Parsed Expense Result:', result);
+  res.json({
+    success: true,
+    data: result,
+  });
   }
   catch (err) {
     console.log('Error in prase Expense:', err);

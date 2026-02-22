@@ -2,6 +2,7 @@ const { createAgent } = require("langchain");
 const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const { MemorySaver } = require("@langchain/langgraph");
 const { PostgresSaver } = require("@langchain/langgraph-checkpoint-postgres");
+const { Pool } = require('pg');
 const { SYSTEM_PROMPT } = require("./system.prompt");
 const { getInvoices } = require("../tools/user.listInvoices.tool");
 const { listInvoiceItems } = require("../tools/user.invoiceItems.tool");
@@ -32,9 +33,15 @@ const baseModel = new ChatGoogleGenerativeAI({
 });
 // const checkpointer = new MemorySaver();
 // ---- POSTGRES CHECKPOINTER ----
-const checkpointer = PostgresSaver.fromConnString(
-  process.env.DATABASE_URL,
-);
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
+    rejectUnauthorized: false, 
+  }
+});
+
+const checkpointer = new PostgresSaver(pool);
 // IMPORTANT: run once on app startup
 async function initCheckpointer() {
   if (process.env.RUN_LANGGRAPH_SETUP === "true") {

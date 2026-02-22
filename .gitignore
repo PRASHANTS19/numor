@@ -11,4 +11,4 @@ node_modules/
 .env.*
 /prisma/migrations
 /package-lock.json
-/logs/
+/src/logs/

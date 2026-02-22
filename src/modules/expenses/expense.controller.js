@@ -7,6 +7,7 @@ exports.parseExpense = async function (req, res) {
   try{
 
   const result = await expenseService.previewExpenseAI(req.file);
+  console.log('Parsed Expense Result:', result);
   res.json({
     success: true,
     data: result,

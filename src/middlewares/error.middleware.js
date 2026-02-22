@@ -1,7 +1,7 @@
-const logger = require('../utils/logger');
+const {appLogger} = require('../utils/logger');
 
 module.exports = (err, req, res, next)=> {
-    logger.error(err);
+    appLogger.error(err);
 
     res.status(err.status || 500).json({
         success: false,

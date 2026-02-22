@@ -13,6 +13,8 @@ const { fetchCABookings } = require("../tools/caBooking.tool");
 const summaryMiddleware = require("../middleware/summarizationMiddleware");
 const { getExpenseDetails } = require("../tools/user.expenseItems.tool");
 const chatLogger = require("../../../../utils/chat.logger");
+const {listAllUserInvoiceItems} = require("../tools/listAllUserInvoiceItems")
+const {listAllUserExpenseItems} = require("../tools/listAllUserExpenseItems")
 const contextSchema = {
   type: "object",
   properties: {
@@ -55,7 +57,9 @@ const numorAgent = createAgent({
     fetchCAReviews,
     fetchCABookings,
     listInvoiceItems,
-    getExpenseDetails
+    getExpenseDetails,
+    listAllUserInvoiceItems,
+    listAllUserExpenseItems
   ],
   systemPrompt: SYSTEM_PROMPT, 
   checkpointer,

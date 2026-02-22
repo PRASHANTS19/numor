@@ -15,6 +15,8 @@ const { getExpenseDetails } = require("../tools/user.expenseItems.tool");
 const chatLogger = require("../../../../utils/chat.logger");
 const {listAllUserInvoiceItems} = require("../tools/listAllUserInvoiceItems")
 const {listAllUserExpenseItems} = require("../tools/listAllUserExpenseItems")
+const {getTotalInvoiceTax} = require("../tools/getTotalInvoiceTax")
+const {getAnalyticsForInvoice} = require("../tools/generalInvoiceAnalytics")
 const contextSchema = {
   type: "object",
   properties: {
@@ -59,7 +61,9 @@ const numorAgent = createAgent({
     listInvoiceItems,
     getExpenseDetails,
     listAllUserInvoiceItems,
-    listAllUserExpenseItems
+    listAllUserExpenseItems,
+    getTotalInvoiceTax,
+    getAnalyticsForInvoice
   ],
   systemPrompt: SYSTEM_PROMPT, 
   checkpointer,

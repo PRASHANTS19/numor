@@ -20,6 +20,7 @@ const upload = multer({
       '.png',
       '.jpg',
       '.jpeg',
+      '.jfif',
       '.xls',
       '.xlsx',
       '.csv'
@@ -29,12 +30,17 @@ const upload = multer({
       'application/pdf',
       'image/png',
       'image/jpeg',
+      'image/pjpeg',
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'text/csv',
-      'application/csv'
+      'application/csv',
+      'application/octet-stream'
     ];
     const ext = path.extname(file.originalname).toLowerCase();
+    console.log("Extension:", ext);
+    console.log("MimeType:", file.mimetype);
+
     if (
       allowedExt.includes(ext) &&
       allowedMimeTypes.includes(file.mimetype)
@@ -43,7 +49,7 @@ const upload = multer({
     } else {
       cb(
         new Error(
-          'Only PDF, Image (PNG/JPG), and Excel (XLS/XLSX) and CSV files are allowed'
+          'Only PDF, Image (PNG/JPG/JPEG/JFIF), and Excel (XLS/XLSX) and CSV files are allowed'
         )
       );
     }

@@ -4,15 +4,15 @@ const expenseService = require('./expense.service');
 
 exports.parseExpense = async function (req, res) {
   // const filePath = req.file.path;
-  try{
+  try {
 
-  const result = await expenseService.previewExpenseAI(req.file);
-  res.json({
-    success: true,
-    data: result,
-  });
+    const result = await expenseService.previewExpenseAI(req.file);
+    res.json({
+      success: true,
+      data: result,
+    });
   }
-  catch(err){
+  catch (err) {
     console.log('Error in prase Expense:', err);
     res.status(500).json({ success: false, message: err.message });
   }
@@ -46,15 +46,15 @@ exports.confirmExpense = async function (req, res) {
   }
 };
 
-exports.listExpenses = async function(req, res){
-  try{
-    const {limit, page, startDate, endDate} = req.query;
-    const user = req.user; 
+exports.listExpenses = async function (req, res) {
+  try {
+    const { limit, page, startDate, endDate } = req.query;
+    const user = req.user;
     const expenses = await expenseService.listExpenses(user, Number(page), Number(limit), startDate, endDate);
-    res.json({success: true, data: expenses});
-  } catch(err){
+    res.json({ success: true, data: expenses });
+  } catch (err) {
     console.error('Error in listExpenses:', err);
-    res.status(500).json({success: false, message: err.message});
+    res.status(500).json({ success: false, message: err.message });
   }
 }
 
@@ -75,14 +75,14 @@ exports.getExpense = async (req, res) => {
   }
 };
 
-exports.listExpenseItems = async function(req, res){    
-  try{
-    const {page, limit} = req.query;
+exports.listExpenseItems = async function (req, res) {
+  try {
+    const { page, limit } = req.query;
     const products = await expenseService.listExpenseItems(req.params.id, Number(page), Number(limit));
-    res.json({success: true, data: products});
-  } catch(err){
+    res.json({ success: true, data: products });
+  } catch (err) {
     console.error('Error in listExpenseItems:', err);
-    res.status(500).json({success: false, message: err.message});
+    res.status(500).json({ success: false, message: err.message });
   }
 }
 

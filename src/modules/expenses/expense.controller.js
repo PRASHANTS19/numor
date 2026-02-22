@@ -4,12 +4,19 @@ const expenseService = require('./expense.service');
 
 exports.parseExpense = async function (req, res) {
   // const filePath = req.file.path;
-  const result = await expenseService.previewExpenseAI(req.file);
+  try{
 
+  const result = await expenseService.previewExpenseAI(req.file);
   res.json({
     success: true,
     data: result,
   });
+  }
+  catch(err){
+    console.log('Error in prase Expense:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+
 }
 
 exports.previewOCR = async function (req, res) {

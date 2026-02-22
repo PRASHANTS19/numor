@@ -28,6 +28,7 @@ Rules:
   "Training & Education",
   "Other"
 - taxPercent should be the percentage value between 0 and 100
+- If tax percent is given only at the end and not for each item, apply it equally to all items. And if the tax percent at the end is given as a combination of multiple tax rates (CGST + SGST, or CGST + UTGST) then apply the combined (sum) tax rate to all items.
 
 JSON format:
 {

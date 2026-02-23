@@ -17,6 +17,7 @@ const {listAllUserInvoiceItems} = require("../tools/listAllUserInvoiceItems")
 const {listAllUserExpenseItems} = require("../tools/listAllUserExpenseItems")
 const {getTotalInvoiceTax} = require("../tools/getTotalInvoiceTax")
 const {getAnalyticsForInvoice} = require("../tools/generalInvoiceAnalytics")
+const {getExpenseAnalytics} = require("../tools/generalExpenseAnalytics")
 const contextSchema = {
   type: "object",
   properties: {
@@ -29,7 +30,7 @@ const contextSchema = {
 const baseModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   temperature: 0.2,
-  maxOutputTokens: 1048,
+  maxOutputTokens: 548,
 });
 // const checkpointer = new MemorySaver();
 // ---- POSTGRES CHECKPOINTER ----
@@ -63,7 +64,8 @@ const numorAgent = createAgent({
     listAllUserInvoiceItems,
     listAllUserExpenseItems,
     getTotalInvoiceTax,
-    getAnalyticsForInvoice
+    getAnalyticsForInvoice,
+    getExpenseAnalytics
   ],
   systemPrompt: SYSTEM_PROMPT, 
   checkpointer,

@@ -47,6 +47,7 @@ const upload = multer({
     ) {
       cb(null, true);
     } else {
+      console.log('File type not allowed, Mimetype - ', file.mimetype," Ext - ", ext);
       cb(
         new Error(
           'Only PDF, Image (PNG/JPG/JPEG/JFIF), and Excel (XLS/XLSX) and CSV files are allowed'

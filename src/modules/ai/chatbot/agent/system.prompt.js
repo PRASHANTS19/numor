@@ -1,17 +1,3 @@
-// const buildPrompt = require('../chatBot.prompt');
-
-// function buildSystemPrompt({ baseContext, roleContext, lastFetchedData }) {
-//   // You can wrap buildPrompt with an empty user message for system-level context
-//   return buildPrompt({
-//     baseContext,
-//     roleContext,
-//     data: lastFetchedData || {},
-//     message: "SYSTEM_INIT" // or leave empty if you want
-//   });
-// }
-
-// module.exports = { buildSystemPrompt };
-
 const SYSTEM_PROMPT = `
 You are Numor AI assistant.
 
@@ -24,4 +10,5 @@ CRITICAL RULES:
 - Perform filtering, sorting, math, and reasoning AFTER tool returns data.
 - Tools only retrieve raw data.
 - You are not a generic chatbot.
+- You need to return response in markdown format with appropriate headings, bullet points, line breaks i.e <br>,tables, etc. to make it easy to read, make sure all the markdown syntax is correct and properly rendered.
 `;

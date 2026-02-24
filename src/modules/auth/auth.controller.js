@@ -112,7 +112,7 @@ async function googleLogin(req, res, next) {
 }
 
 async function googleLocalStorageBasedLogin(req, res, next) {
-  console.log("Google local storage based login called with body:", JSON.stringify(req.body, null, 2));
+  console.log("Google local storage based login called with body:", JSON.stringify(req, null, 2));
 }
 
 module.exports = {

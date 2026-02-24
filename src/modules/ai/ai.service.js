@@ -403,6 +403,7 @@ function getMimeType(filePath) {
   switch (ext) {
     case ".jpg":
     case ".jpeg":
+    case ".jfif": 
       return "image/jpeg";
     case ".png":
       return "image/png";

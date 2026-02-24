@@ -4,7 +4,7 @@ const { ChatGoogleGenerativeAI } = require("@langchain/google-genai");
 const summaryModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash-lite",
   temperature: 0,
-  maxOutputTokens: 800,
+  maxOutputTokens: 300,
 });
 
 const summaryPrompt = `
@@ -28,16 +28,15 @@ const summaryMiddleware = summarizationMiddleware({
 
   // OR logic — any condition triggers summarization
   trigger: [
-    { tokens: 3000 },
-    { messages: 8 },
-  ],
+    { tokens: 5000 },
+    ],
 
   // Keep last 15 messages verbatim
   keep: {
-    messages: 15,
+    messages: 6,
   },
 
-  trimTokensToSummarize: 4000,
+  trimTokensToSummarize: 2000,
   summaryPrompt,
 });
 

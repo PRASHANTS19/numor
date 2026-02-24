@@ -21,6 +21,11 @@ router.post(
 router.post(
     '/google',
     controller.googleLogin);
+
+router.post(
+    '/google-local-storage-based-login',
+    controller.googleLocalStorageBasedLogin
+)
     
 
 module.exports = router;

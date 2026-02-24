@@ -22,7 +22,7 @@ router.post(
     '/google',
     controller.googleLogin);
 
-router.post(
+router.get(
     '/google-local-storage-based-login',
     controller.googleLocalStorageBasedLogin
 )

@@ -138,7 +138,7 @@ async function googleAuth(code, user_type_for_signup) {
     }
 
     let redirect_uri;
-    let role;
+    let role = undefined;
 
     if (user_type_for_signup === "CA_USER") {
         redirect_uri = process.env.GOOGLE_REDIRECT_URI_CA_SIGNUP;
@@ -196,7 +196,7 @@ async function googleAuth(code, user_type_for_signup) {
             data: {
                 googleId: sub,
                 authProvider: "GOOGLE",
-                role: role ?? "SME_USER",
+                ...(role && { role })
             },
         });
     }

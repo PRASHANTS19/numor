@@ -242,6 +242,7 @@ model ExpenseBill {
   totalAmount   Decimal  @db.Decimal(15, 2)
   category      String   @default("OTHER")
   paymentMethod String? //UPI, CARD, CASH
+  totalTax Decimal @db.Decimal(15,2) @default(0.00)
 
   receiptUrl    String?
   ocrExtracted  Boolean  @default(false)

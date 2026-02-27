@@ -3,6 +3,7 @@ const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
 const fs = require("fs");
 const storageService = require("../../storage/storage.service");
+const { Prisma } = require("@prisma/client");
 
 function isExcelFile(mimetype, filename) {
   if (mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
@@ -107,10 +108,82 @@ exports.previewExpenseAI = async function (file) {
 };
 
 
+// exports.saveExpenseFromPreview = async (user, payload) => {
+//   return prisma.$transaction(async (tx) => {
+
+//     // 1️⃣ Create expense bill
+//     const expense = await tx.expenseBill.create({
+//       data: {
+//         orgId: BigInt(user.orgId),
+//         userId: BigInt(user.userId),
+//         merchant: payload.merchant ?? null,
+//         expenseDate: payload.expenseDate
+//           ? new Date(payload.expenseDate)
+//           : new Date(),
+//         totalAmount: payload.totalAmount,
+//         category: payload.category ?? 'OTHER',
+//         paymentMethod: payload.paymentMethod ?? "CASH",
+//         receiptUrl: payload.receiptUrl ?? null,
+//         ocrExtracted: true,
+//         ocrConfidence: payload.confidence ?? null,
+//       },
+//     });
+
+//     // 2️⃣ Create expense items
+//     if (Array.isArray(payload.items)) {
+//       for (const item of payload.items) {
+//         await tx.expenseBillItem.create({
+//           data: {
+//             expenseId: expense.id, // ✅ IMPORTANT
+//             itemName: item.name ?? null,
+//             quantity: item.quantity ?? 1,
+//             unitPrice: item.unitPrice ?? 0,
+//             unitType: item.unitType ?? "UNIT",
+//             taxRate: item.taxRate ?? 0,
+//             totalPrice: item.total ?? 0,
+//           },
+//         });
+//       }
+//     }
+
+//     return expense;
+//   });
+// };
 exports.saveExpenseFromPreview = async (user, payload) => {
   return prisma.$transaction(async (tx) => {
 
-    // 1️⃣ Create expense bill
+    let totalTax = new Prisma.Decimal(0);
+    let subtotal = new Prisma.Decimal(0);
+
+    const itemsData = [];
+
+    if (Array.isArray(payload.items)) {
+      for (const item of payload.items) {
+
+        const quantity = new Prisma.Decimal(item.quantity ?? 1);
+        const unitPrice = new Prisma.Decimal(item.unitPrice ?? 0);
+        const taxRate = new Prisma.Decimal(item.taxRate ?? 0);
+
+        const itemTotal = quantity.mul(unitPrice);
+        const itemTax = itemTotal.mul(taxRate).div(100);
+
+        subtotal = subtotal.add(itemTotal);
+        totalTax = totalTax.add(itemTax);
+
+        itemsData.push({
+          itemName: item.name ?? null,
+          quantity,
+          unitPrice,
+          unitType: item.unitType ?? "UNIT",
+          taxRate,
+          totalPrice: itemTotal, // store calculated total (safe)
+        });
+      }
+    }
+
+    // Optional: If you want auto-calculated grand total
+    const grandTotal = subtotal.add(totalTax);
+
     const expense = await tx.expenseBill.create({
       data: {
         orgId: BigInt(user.orgId),
@@ -119,35 +192,31 @@ exports.saveExpenseFromPreview = async (user, payload) => {
         expenseDate: payload.expenseDate
           ? new Date(payload.expenseDate)
           : new Date(),
-        totalAmount: payload.totalAmount,
-        category: payload.category ?? 'OTHER',
+        totalAmount: new Prisma.Decimal(
+          payload.totalAmount ?? grandTotal
+        ),
+        totalTax,
+        category: payload.category ?? "OTHER",
         paymentMethod: payload.paymentMethod ?? "CASH",
         receiptUrl: payload.receiptUrl ?? null,
         ocrExtracted: true,
-        ocrConfidence: payload.confidence ?? null,
+        ocrConfidence: payload.confidence
+          ? new Prisma.Decimal(payload.confidence)
+          : null,
+        // 🔥 Nested create (single DB roundtrip)
+        items: {
+          create: itemsData,
+        },
+      },
+      include: {
+        items: true,
       },
     });
-
-    // 2️⃣ Create expense items
-    if (Array.isArray(payload.items)) {
-      for (const item of payload.items) {
-        await tx.expenseBillItem.create({
-          data: {
-            expenseId: expense.id, // ✅ IMPORTANT
-            itemName: item.name ?? null,
-            quantity: item.quantity ?? 1,
-            unitPrice: item.unitPrice ?? 0,
-            unitType: item.unitType ?? "UNIT",
-            taxRate: item.taxRate ?? 0,
-            totalPrice: item.total ?? 0,
-          },
-        });
-      }
-    }
 
     return expense;
   });
 };
+
 
 exports.listExpenses = async (user, page = 1, limit = 10, startDate, endDate) => {
   page = Number(page);

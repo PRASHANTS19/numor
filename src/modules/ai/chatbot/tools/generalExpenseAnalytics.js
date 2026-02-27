@@ -33,11 +33,11 @@ const getExpenseAnalytics = tool(
 
       case "total_tax":
         result = await prisma.$queryRaw`
-          SELECT COALESCE(SUM((i."totalPrice" * i."taxRate") / 100), 0) AS value
-          FROM expense_bill_items i
-          JOIN expense_bills b ON b.id = i."expenseId"
+          SELECT COALESCE(SUM(b."totalTax"), 0) AS value
+          FROM expense_bills b
           WHERE b."userId" = ${BigInt(userId)}
         `;
+
         return {
           value: Number(result[0].value).toFixed(2)
         };
@@ -62,6 +62,109 @@ const getExpenseAnalytics = tool(
         return {
           value: result._avg.totalAmount?.toString() || "0.00"
         };
+      case "expense_by_category":
+        const byCategory = await prisma.expenseBill.groupBy({
+          by: ["category"],
+          _sum: { totalAmount: true },
+          where: {
+            userId: BigInt(userId),
+            ...dateFilter,
+          },
+          orderBy: {
+            _sum: { totalAmount: "desc" }
+          }
+        });
+
+        return JSON.stringify(
+          byCategory.map(c => ({
+            category: c.category,
+            total: c._sum.totalAmount?.toString() || "0.00"
+          }))
+        );
+
+      case "expense_by_merchant":
+        const byMerchant = await prisma.expenseBill.groupBy({
+          by: ["merchant"],
+          _sum: { totalAmount: true },
+          where: {
+            userId: BigInt(userId),
+            ...dateFilter,
+          },
+          orderBy: {
+            _sum: { totalAmount: "desc" }
+          }
+        });
+
+        return JSON.stringify(byMerchant.map(m => ({
+          merchant: m.merchant || "Unknown",
+          total: m._sum.totalAmount?.toString() || "0.00"
+        })));
+
+      case "expense_by_payment_method":
+        const byPayment = await prisma.expenseBill.groupBy({
+          by: ["paymentMethod"],
+          _sum: { totalAmount: true },
+          where: {
+            userId: BigInt(userId),
+            ...dateFilter,
+          },
+        });
+
+        return JSON.stringify(byPayment.map(p => ({
+          method: p.paymentMethod || "Unknown",
+          total: p._sum.totalAmount?.toString() || "0.00"
+        })));
+
+      case "monthly_trend":
+        const trend = await prisma.$queryRaw`
+        SELECT 
+          TO_CHAR("expenseDate", 'YYYY-MM') as month,
+          SUM("totalAmount") as total
+        FROM expense_bills
+        WHERE "userId" = ${BigInt(userId)}
+        GROUP BY month
+        ORDER BY month ASC
+      `;
+
+        return JSON.stringify(trend);
+
+      case "highest_expense":
+        const highest = await prisma.expenseBill.findFirst({
+          where: {
+            userId: BigInt(userId),
+            ...dateFilter,
+          },
+          orderBy: { totalAmount: "desc" }
+        });
+
+        return JSON.stringify({  
+          value: highest?.totalAmount?.toString() || "0.00",
+          merchant: highest?.merchant
+        });
+
+      case "tax_by_rate":
+        const taxBreakdown = await prisma.$queryRaw`
+        SELECT 
+          i."taxRate",
+          SUM((i."totalPrice" * i."taxRate") / 100) as tax
+        FROM expense_bill_items i
+        JOIN expense_bills b ON b.id = i."expenseId"
+        WHERE b."userId" = ${BigInt(userId)}
+        GROUP BY i."taxRate"
+        ORDER BY i."taxRate"
+      `;
+
+        return JSON.stringify(taxBreakdown);
+
+      case "average_daily_spend":
+        const daily = await prisma.$queryRaw`
+            SELECT COALESCE(SUM("totalAmount") / COUNT(DISTINCT DATE("expenseDate")), 0) as value
+            FROM expense_bills
+            WHERE "userId" = ${BigInt(userId)}
+          `;
+
+        return JSON.stringify({ value: Number(daily[0].value).toFixed(2) });
+
 
       default:
         throw new Error("Metric not supported");
@@ -87,7 +190,15 @@ You can optionally filter by date range or category.
             "total_expense",
             "total_tax",
             "expense_count",
-            "average_expense"
+            "average_expense",
+            "expense_by_category",
+            "expense_by_merchant",
+            "expense_by_payment_method",
+            "monthly_trend",
+            "highest_expense",
+            "average_daily_spend",
+            "tax_by_rate",
+
           ]
         },
         startDate: { type: "string" },

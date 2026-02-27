@@ -28,6 +28,8 @@ const getExpenseDetails = tool(
     description: `
 Fetch detailed expense including items.
 Use only when user explicitly asks for details.
+- You need to return response in markdown format with appropriate headings, bullet points, line breaks i.e <br>,tables, etc. to make it easy to read, make sure all the markdown syntax is correct and properly rendered.
+
 `,
     schema: {
       type: "object",

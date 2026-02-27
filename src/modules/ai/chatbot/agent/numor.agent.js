@@ -43,6 +43,10 @@ const pool = new Pool({
 });
 
 const checkpointer = new PostgresSaver(pool);
+
+// const checkpointer = PostgresSaver.fromConnString(
+//   process.env.DATABASE_URL,
+// );
 // IMPORTANT: run once on app startup
 async function initCheckpointer() {
   if (process.env.RUN_LANGGRAPH_SETUP === "true") {

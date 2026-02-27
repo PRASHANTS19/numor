@@ -53,7 +53,8 @@ async function handleChat(user, message) {
     });
 
     // console.log(JSON.stringify(result, null, 2));
-    return result.messages.at(-1)?.content;
+    const raw = result.messages.at(-1)?.content;
+    return ensureMarkdownFormatting(raw);
   }
   catch (error) {
     const agentLatency = Date.now() - agentStart;
@@ -70,7 +71,14 @@ async function handleChat(user, message) {
     throw error;
   }
 }
+function ensureMarkdownFormatting(text) {
+  if (!text) return text;
 
+  // Convert "*   **ID:**" style to markdown dash format
+  return text
+    .replace(/\*\s+\*\*/g, "- **") // convert weird bullet format
+    .replace(/\n\*\s+/g, "\n- ");
+}
 
 async function getChatHistory(user) {
   const threadId = `session-${user.sessionId}`;

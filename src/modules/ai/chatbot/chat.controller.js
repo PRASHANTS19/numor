@@ -1,30 +1,41 @@
 const { success } = require("zod");
 const { get } = require("./chat.route");
-const { handleChat, getChatHistory, deleteChatHistory } = require("./chat.service");
+const { handleChat, getChatHistory, deleteChatHistory, handleChatStream } = require("./chat.service");
 const chatLogger = require("../../../utils/chat.logger");
 
-// async function chat(req, res) {
-//   try {
-//     const user = req.user;
-//     const { message } = req.body;
+async function chatStream(req, res) {
+  const start = Date.now();
 
-//     if (!user.userId || !message) {
-//       return res.status(400).json({
-//         error: "userId and message are required",
-//       });
-//     }
+  try {
+    const user = req.user;
+    const { message } = req.body;
 
-//     const reply = await handleChat(user, message);
+    await handleChatStream(user, message, res);
 
-//     return res.json({ reply });
-//   } catch (err) {
-//     console.error("Chat Controller Error:", err);
-//     return res.status(500).json({
-//       error: "Chatbot failed",
-//       details: err.message,
-//     });
-//   }
-// }
+    const totalLatency = Date.now() - start;
+
+    chatLogger.info({
+      event: "CHAT_API_COMPLETED",
+      userId: user.userId,
+      sessionId: user.sessionId,
+      apiLatencyMs: totalLatency,
+    });
+
+  } catch (err) {
+    chatLogger.error({
+      event: "CHAT_API_FAILED",
+      error: err.message,
+      stack: err.stack,
+    });
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        error: "Chatbot failed",
+        details: err.message,
+      });
+    }
+  }
+}
 
 async function chat(req, res) {
   const start = Date.now();
@@ -99,4 +110,4 @@ async function deleteHistory(req, res) {
   }
 }
 
-module.exports = { chat, chatHistory, deleteHistory };
+module.exports = { chat, chatHistory, deleteHistory, chatStream };

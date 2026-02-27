@@ -111,9 +111,46 @@ async function googleLogin(req, res, next) {
   }
 }
 
+async function googleLocalStorageBasedLogin(req, res, next) {
+  const {state, code} = req.query;
+  let user_type_for_signup = undefined;
+  
+  if(state) {
+    try{
+      const parsed = JSON.parse(Buffer.from(state, "base64").toString());
+      user_type_for_signup = parsed.user_type_for_signup;
+    }
+    catch(err) {
+      console.error("Failed to parse state parameter:", err);
+      return res.status(400).json({
+        success: false,
+        message: "Invalid state parameter",
+      });
+    }
+  }
+
+  try{
+
+    const { token, user } = await authService.googleAuth(code, user_type_for_signup);
+
+    const frontendUrl = process.env.FRONTEND_URL; 
+    const redirectPath = user?.role === "CA_USER" ? "/ca/dashboard" : "/sme/dashboard";
+
+    // Token in hash fragment so it's never sent to servers
+    res.redirect(`${frontendUrl}/auth/callback#token=${token}&redirect=${redirectPath}`);
+  }
+  catch(err) {
+    console.error("Google auth failed:", err);
+    const frontendUrl = process.env.FRONTEND_URL;
+    res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
+  }
+
+}
+
 module.exports = {
   register,
   login,
   logout,
-  googleLogin
+  googleLogin,
+  googleLocalStorageBasedLogin
 };

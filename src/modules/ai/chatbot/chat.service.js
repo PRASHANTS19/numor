@@ -14,6 +14,78 @@ LLM calls tool: getInvoices({ status: "OVERDUE", month: "Dec" })
 ↓
 Tool returns ONLY relevant rows
 */
+async function handleChatStream(user, message, res) {
+  const agentStart = Date.now();
+
+  try {
+    chatLogger.info({
+      event: "CHAT_REQUEST_RECEIVED",
+      userId: user.userId,
+      sessionId: user.sessionId,
+      role: user.role,
+      messageLength: message.length,
+    });
+
+    // 🔥 Set SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+
+    let fullResponse = "";
+
+    const stream = await numorAgent.stream(
+      {
+        messages: [{ role: "user", content: message }],
+      },
+      {
+        configurable: {
+          thread_id: `session-${user.sessionId}`,
+          context: {
+            userId: user.userId.toString(),
+            role: user.role,
+            orgId: user.orgId,
+          },
+        },
+        streamMode: "messages", // 🔥 token streaming
+      }
+    );
+
+    for await (const [chunk, metadata] of stream) {
+      if (chunk?.content) {
+        fullResponse += chunk.content;
+
+        // Send token to frontend
+        res.write(`data: ${chunk.content}\n\n`);
+      }
+    }
+
+    const agentLatency = Date.now() - agentStart;
+
+    chatLogger.info({
+      event: "AGENT_STREAM_COMPLETED",
+      agentLatencyMs: agentLatency,
+      userId: user.userId,
+      sessionId: user.sessionId,
+    });
+
+    // End event
+    res.write(`event: end\ndata: done\n\n`);
+    res.end();
+
+    return ensureMarkdownFormatting(fullResponse);
+
+  } catch (error) {
+    chatLogger.error({
+      event: "CHAT_ERROR",
+      error: error.message,
+      stack: error.stack,
+    });
+
+    res.write(`event: error\ndata: ${error.message}\n\n`);
+    res.end();
+  }
+}
+
 async function handleChat(user, message) {
   const agentStart = Date.now();
 
@@ -147,4 +219,4 @@ async function deleteChatHistory(user) {
 
 
 
-module.exports = { handleChat, getChatHistory, deleteChatHistory };
+module.exports = { handleChat, getChatHistory, deleteChatHistory, handleChatStream };

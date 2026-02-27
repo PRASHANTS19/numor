@@ -178,6 +178,13 @@ Fetch expense analytics including:
 - total tax on expenses
 - expense count
 - average expense
+- expense_by_category
+- expense_by_merchant
+- expense_by_payment_method
+- monthly_trend
+- highest_expense
+- average_daily_spend
+- tax_by_rate
 - You need to return response in markdown format with appropriate headings, bullet points, line breaks i.e <br>,tables, etc. to make it easy to read, make sure all the markdown syntax is correct and properly rendered.
 You can optionally filter by date range or category.
 `,

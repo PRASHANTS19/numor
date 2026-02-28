@@ -487,150 +487,263 @@ async function confirmAndCreateInvoice(user, data) {
 }
 
 async function updateInvoice(user, id, data) {
-    try {
-        // 1️⃣ Calculate totals (same logic as create)
-        const subtotal = (data.items ?? []).reduce(
-            (s, i) => s + (i.quantity ?? 1) * (i.unitPrice ?? 0),
-            0
-        );
+    return await prisma.$transaction(async (tx) => {
+        const invoiceId = BigInt(id);
 
-        const taxAmount = (data.items ?? []).reduce(
-            (s, i) =>
-                s +
-                ((i.quantity ?? 1) *
-                    (i.unitPrice ?? 0) *
-                    (i.taxRate ?? 0)) /
-                100,
-            0
-        );
-
-        const effectiveTax = subtotal
-            ? Number(((taxAmount / subtotal) * 100).toFixed(2))
-            : 0;
-
-        const discount = data.discount ?? 0;
-        const shippingCost = data.shippingCost ?? 0;
-
-        const totalAmount =
-            subtotal - discount + taxAmount + shippingCost;
-
-        const paidAmount = data.paidAmount ?? 0;
-        const balanceDue = totalAmount - paidAmount;
-
-        const exchangeRate = data.exchangeRate ?? 1;
-        const baseAmount = totalAmount * exchangeRate;
-
-        // 2️⃣ Update invoice with recalculated values
-        const invoice = await prisma.invoiceBill.update({
+        // --------------------------------------------------
+        // 1️⃣ Fetch Existing Invoice
+        // --------------------------------------------------
+        const existingInvoice = await tx.invoiceBill.findFirst({
             where: {
-                id: BigInt(id),
+                id: invoiceId,
                 orgId: BigInt(user.orgId),
-            },
-            data: {
-                clientId: data.clientId
-                    ? BigInt(data.clientId)
-                    : undefined,
-
-                invoiceNumber: data.invoiceNumber,
-                invoiceType: data.invoiceType,
-
-                issueDate: data.issueDate
-                    ? new Date(data.issueDate)
-                    : undefined,
-                dueDate: data.dueDate
-                    ? new Date(data.dueDate)
-                    : undefined,
-                paymentTerms: data.paymentTerms,
-
-                currency: data.currency,
-                exchangeRate,
-                baseCurrency: data.baseCurrency,
-                baseAmount,
-
-                subtotal,
-                discount,
-                taxAmount,
-                shippingCost,
-                totalAmount,
-                paidAmount,
-                balanceDue,
-                effectiveTax,
-
-                status: data.status,
-                category: data.category,
-
-                // Seller snapshot
-                sellerName: data.seller?.name,
-                sellerEmail: data.seller?.email,
-                sellerPhone: data.seller?.phone,
-                sellerStreetAddress: data.seller?.streetAddress,
-                sellerCity: data.seller?.city,
-                sellerState: data.seller?.state,
-                sellerZipCode: data.seller?.zipCode,
-                sellerCountry: data.seller?.country,
-                sellerTaxId: data.seller?.taxId,
-                iecCode: data.seller?.iecCode,
-                lutFiled: data.seller?.lutFiled,
-
-                // Tax & compliance
-                taxType: data.taxType,
-                placeOfSupply: data.placeOfSupply,
-                reverseCharge: data.reverseCharge,
-                reverseReason: data.reverseReason,
-                sacCode: data.sacCode,
-                taxSummary: data.taxSummary,
-
-                // Shipping
-                shipToName: data.shipTo?.name,
-                shipToAddress: data.shipTo?.address,
-                countryOfOrigin: data.countryOfOrigin,
-                countryOfDestination: data.countryOfDestination,
-                incoterms: data.incoterms,
-
-                // Payment
-                bankDetails: data.bankDetails,
-                paymentLink: data.paymentLink,
-                bankAddress: data.bankAddress,
-
-                // Legal
-                jurisdiction: data.jurisdiction,
-                lateFeePolicy: data.lateFeePolicy,
-                notes: data.notes,
-
-                updatedAt: new Date(),
-
-                // 🔥 Replace items safely
-                items: data.items
-                    ? {
-                        deleteMany: {},
-                        create: data.items.map((item) => ({
-                            itemName: item.name,
-                            description: item.description,
-                            quantity: item.quantity ?? 1,
-                            unitType: item.unitType ?? "UNIT",
-                            unitPrice: item.unitPrice ?? 0,
-                            taxRate: item.taxRate ?? 0,
-                            // totalPrice:
-                            //     (item.quantity ?? 1) *
-                            //     (item.unitPrice ?? 0) +
-                            //     ((item.quantity ?? 1) *
-                            //         (item.unitPrice ?? 0) *
-                            //         (item.taxRate ?? 0)) /
-                            //     100,
-                            "totalPrice": item.itemTotal ?? 0,
-
-                        })),
-                    }
-                    : undefined,
             },
             include: { items: true },
         });
 
-        return invoice;
-    } catch (err) {
-        console.error("Update invoice failed:", err);
-        throw err;
-    }
+        if (!existingInvoice) {
+            throw new Error("Invoice not found");
+        }
+
+        const updateData = {};
+
+        // --------------------------------------------------
+        // 2️⃣ Handle Client (Buyer) Logic
+        // --------------------------------------------------
+
+        if (data.buyer) {
+            let clientId = existingInvoice.clientId;
+
+            if (clientId) {
+                // Update existing client
+                await tx.client.update({
+                    where: { id: clientId },
+                    data: {
+                        name: data.buyer.name,
+                        email: data.buyer.email,
+                        phone: data.buyer.phone,
+                        streetAddress: data.buyer.address?.street,
+                        city: data.buyer.address?.city,
+                        state: data.buyer.address?.state,
+                        zipCode: data.buyer.address?.zipCode,
+                        country: data.buyer.address?.country,
+                        companyType: data.buyer.companyType,
+                        gstin: data.buyer.gstin,
+                        taxId: data.buyer.taxId,
+                        taxSystem: data.buyer.taxSystem ?? "NONE",
+                    },
+                });
+            } else {
+                // Create new client
+                const newClient = await tx.client.create({
+                    data: {
+                        userId: BigInt(user.userId),
+                        name: data.buyer.name,
+                        email: data.buyer.email,
+                        phone: data.buyer.phone,
+                        streetAddress: data.buyer.address?.street,
+                        city: data.buyer.address?.city,
+                        state: data.buyer.address?.state,
+                        zipCode: data.buyer.address?.zipCode,
+                        country: data.buyer.address?.country,
+                        companyType: data.buyer.companyType,
+                        gstin: data.buyer.gstin,
+                        taxId: data.buyer.taxId,
+                        taxSystem: data.buyer.taxSystem ?? "NONE",
+                        isActive: true,
+                    },
+                });
+
+                updateData.clientId = newClient.id;
+            }
+        }
+
+        if (data.clientId !== undefined) {
+            updateData.clientId = BigInt(data.clientId);
+        }
+
+        // --------------------------------------------------
+        // 3️⃣ Map All Direct Invoice Fields
+        // --------------------------------------------------
+
+        const directFields = [
+            "invoiceNumber",
+            "invoiceType",
+            "paymentTerms",
+            "status",
+            "category",
+            "currency",
+            "baseCurrency",
+            "taxType",
+            "placeOfSupply",
+            "reverseCharge",
+            "reverseReason",
+            "sacCode",
+            "taxSummary",
+            "countryOfOrigin",
+            "countryOfDestination",
+            "incoterms",
+            "bankDetails",
+            "paymentLink",
+            "bankAddress",
+            "jurisdiction",
+            "lateFeePolicy",
+            "notes",
+        ];
+
+        directFields.forEach((field) => {
+            if (data[field] !== undefined) {
+                updateData[field] = data[field];
+            }
+        });
+
+        if (data.issueDate)
+            updateData.issueDate = new Date(data.issueDate);
+
+        if (data.dueDate)
+            updateData.dueDate = new Date(data.dueDate);
+
+        // --------------------------------------------------
+        // 4️⃣ Seller Snapshot Fields
+        // --------------------------------------------------
+
+        if (data.seller) {
+            const sellerMap = {
+                name: "sellerName",
+                email: "sellerEmail",
+                phone: "sellerPhone",
+                streetAddress: "sellerStreetAddress",
+                city: "sellerCity",
+                state: "sellerState",
+                zipCode: "sellerZipCode",
+                country: "sellerCountry",
+                taxId: "sellerTaxId",
+                iecCode: "iecCode",
+                lutFiled: "lutFiled",
+            };
+
+            Object.entries(sellerMap).forEach(([inputKey, dbKey]) => {
+                if (data.seller[inputKey] !== undefined) {
+                    updateData[dbKey] = data.seller[inputKey];
+                }
+            });
+        }
+
+        // --------------------------------------------------
+        // 5️⃣ Shipping Fields
+        // --------------------------------------------------
+
+        if (data.shipTo) {
+            if (data.shipTo.name !== undefined)
+                updateData.shipToName = data.shipTo.name;
+
+            if (data.shipTo.address !== undefined)
+                updateData.shipToAddress = data.shipTo.address;
+        }
+
+        // --------------------------------------------------
+        // 6️⃣ Handle Items
+        // --------------------------------------------------
+
+        let items = existingInvoice.items;
+
+        if (Array.isArray(data.items)) {
+            items = data.items;
+
+            updateData.items = {
+                deleteMany: {},
+                create: data.items.map((item) => ({
+                    itemName: item.name,
+                    description: item.description,
+                    quantity: item.quantity ?? 1,
+                    unitType: item.unitType ?? "UNIT",
+                    unitPrice: item.unitPrice ?? 0,
+                    taxRate: item.taxRate ?? 0,
+                    totalPrice:
+                        item.itemTotal ??
+                        (item.quantity ?? 1) * (item.unitPrice ?? 0),
+                })),
+            };
+        }
+
+        // --------------------------------------------------
+        // 7️⃣ Smart Recalculation
+        // --------------------------------------------------
+
+        const shouldRecalculate =
+            data.items ||
+            data.discount !== undefined ||
+            data.shippingCost !== undefined ||
+            data.paidAmount !== undefined ||
+            data.exchangeRate !== undefined;
+
+        if (shouldRecalculate) {
+            const subtotal = items.reduce(
+                (sum, i) => sum + (i.quantity ?? 1) * (i.unitPrice ?? 0),
+                0
+            );
+
+            const taxAmount = items.reduce(
+                (sum, i) =>
+                    sum +
+                    ((i.quantity ?? 1) *
+                        (i.unitPrice ?? 0) *
+                        (i.taxRate ?? 0)) /
+                    100,
+                0
+            );
+
+            const discount =
+                data.discount ?? existingInvoice.discount ?? 0;
+
+            const shippingCost =
+                data.shippingCost ??
+                existingInvoice.shippingCost ??
+                0;
+
+            const paidAmount =
+                data.paidAmount ??
+                existingInvoice.paidAmount ??
+                0;
+
+            const exchangeRate =
+                data.exchangeRate ??
+                existingInvoice.exchangeRate ??
+                1;
+
+            const totalAmount =
+                subtotal - discount + taxAmount + shippingCost;
+
+            const balanceDue = totalAmount - paidAmount;
+            const baseAmount = totalAmount * exchangeRate;
+
+            Object.assign(updateData, {
+                subtotal,
+                taxAmount,
+                discount,
+                shippingCost,
+                totalAmount,
+                paidAmount,
+                balanceDue,
+                exchangeRate,
+                baseAmount,
+            });
+        }
+
+        updateData.updatedAt = new Date();
+
+        // --------------------------------------------------
+        // 8️⃣ Final Update
+        // --------------------------------------------------
+
+        const updatedInvoice = await tx.invoiceBill.update({
+            where: { id: invoiceId },
+            data: updateData,
+            include: { items: true },
+        });
+
+        return updatedInvoice;
+    });
 }
 
 async function getInvoice(user, id) {

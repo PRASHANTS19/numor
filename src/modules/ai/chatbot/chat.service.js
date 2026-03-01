@@ -61,6 +61,7 @@ async function handleChatStream(user, message, res) {
       // Only stream AI tokens
       if (type === "ai" && chunk.content) {
         fullResponse += chunk.content;
+        console.log("STREAMING CHUNK:", chunk.content);
         res.write(`data: ${chunk.content}\n\n`);
       }
     }

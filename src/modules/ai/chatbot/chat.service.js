@@ -51,10 +51,16 @@ async function handleChatStream(user, message, res) {
     );
 
     for await (const [chunk, metadata] of stream) {
-      if (chunk?.content) {
-        fullResponse += chunk.content;
 
-        // Send token to frontend
+      const type = chunk?._getType?.();
+      // console.log("STREAM CHUNK:", { type, content: chunk.content, metadata });
+
+      // Ignore tool output
+      if (type === "tool") continue;
+
+      // Only stream AI tokens
+      if (type === "ai" && chunk.content) {
+        fullResponse += chunk.content;
         res.write(`data: ${chunk.content}\n\n`);
       }
     }
@@ -71,7 +77,7 @@ async function handleChatStream(user, message, res) {
     // End event
     res.write(`event: end\ndata: done\n\n`);
     res.end();
-
+    console.log("Full response:", fullResponse);
     return ensureMarkdownFormatting(fullResponse);
 
   } catch (error) {

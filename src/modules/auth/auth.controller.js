@@ -133,7 +133,18 @@ async function googleLocalStorageBasedLogin(req, res, next) {
 
     const { token, user } = await authService.googleAuth(code, user_type_for_signup);
 
-    const frontendUrl = process.env.FRONTEND_URL; 
+    let frontendUrl;
+    switch(process.env.FRONTEND_URL) {
+      case "PRODUCTION":
+        frontendUrl = process.env.FRONTEND_URL_PRODUCTION;
+        break;
+      case "LOVABLE":
+        frontendUrl = process.env.FRONTEND_URL_LOVABLE;
+        break;
+      default:
+        frontendUrl = process.env.FRONTEND_URL_LOCAL;
+    }
+     
     const redirectPath = user?.role === "CA_USER" ? "/ca/dashboard" : "/sme/dashboard";
 
     // Token in hash fragment so it's never sent to servers

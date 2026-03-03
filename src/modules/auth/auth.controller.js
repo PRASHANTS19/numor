@@ -158,10 +158,49 @@ async function googleLocalStorageBasedLogin(req, res, next) {
 
 }
 
+async function forgetPassword(req, res) {
+  try {
+    const { email } = req.body;
+
+    const result = await authService.forgetPassword(email);
+
+    res.json({
+      success: true,
+      message: "Verification code sent to email",
+      result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+async function resetUserPassword(req, res) {
+  try {
+    const { email, code, newPassword } = req.body;
+
+    await authService.resetPassword(email, code, newPassword);
+
+    res.json({
+      success: true,
+      message: "Password updated successfully"
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
 module.exports = {
   register,
   login,
   logout,
   googleLogin,
-  googleLocalStorageBasedLogin
+  googleLocalStorageBasedLogin,
+  forgetPassword,
+  resetUserPassword
 };

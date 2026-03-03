@@ -3,6 +3,7 @@ const prisma = require('../../config/database');
 const { signToken } = require('../../config/jwt');
 const fetch = require('node-fetch');
 const crypto = require("crypto");
+const { sendEmail } = require("../../services/email.service");
 
 async function registerUser(data) {
     const sessionId = crypto.randomUUID();
@@ -250,10 +251,92 @@ function convertBigIntToString(obj) {
     return obj;
 }
 
+function generateOTP() {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+}
 
+async function forgetPassword(email) {
+    try {
+        if (!email) {
+            throw new Error("Email is required");
+        }
+
+        const dbUser = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (!dbUser) {
+            throw new Error("User not found");
+        }
+
+        const otp = generateOTP();
+
+        // Hash OTP before storing (important security step)
+        const hashedOtp = await bcrypt.hash(otp, 10);
+
+        const expiry = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+        await prisma.user.update({
+            where: { id: dbUser.id },
+            data: {
+                resetPasswordToken: hashedOtp,
+                resetPasswordExpiresAt: expiry
+            }
+        });
+
+        await sendEmail({
+            to: dbUser.email,
+            subject: "Numor Password Reset Code",
+            html: `
+        <h2>Password Reset</h2>
+        <p>Your verification code is:</p>
+        <h1>${otp}</h1>
+        <p>This code will expire in 10 minutes.</p>
+      `
+        });
+        return { email: dbUser.email };
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function resetPassword(email, code, newPassword) {
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user || !user.resetPasswordToken) {
+        throw new Error("Invalid request");
+    }
+
+    if (new Date() > user.resetPasswordExpiresAt) {
+        throw new Error("Code expired");
+    }
+
+    const isValid = await bcrypt.compare(code, user.resetPasswordToken);
+
+    if (!isValid) {
+        throw new Error("Invalid verification code");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+        where: { id: user.id },
+        data: {
+            passwordHash: hashedPassword,
+            resetPasswordToken: null,
+            resetPasswordExpiresAt: null
+        }
+    });
+
+    return { success: true };
+}
 
 module.exports = {
     registerUser,
     loginUser,
-    googleAuth
+    googleAuth,
+    forgetPassword,
+    resetPassword
 };

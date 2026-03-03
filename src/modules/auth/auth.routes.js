@@ -26,6 +26,15 @@ router.get(
     '/google-local-storage-based-login',
     controller.googleLocalStorageBasedLogin
 )
-    
+
+router.post(
+    '/forgetPassword',
+    controller.forgetPassword
+)
+
+router.post(
+    '/resetPassword',
+    controller.resetUserPassword
+)
 
 module.exports = router;

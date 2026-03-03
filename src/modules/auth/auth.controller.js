@@ -112,15 +112,15 @@ async function googleLogin(req, res, next) {
 }
 
 async function googleLocalStorageBasedLogin(req, res, next) {
-  const {state, code} = req.query;
+  const { state, code } = req.query;
   let user_type_for_signup = undefined;
-  
-  if(state) {
-    try{
+
+  if (state) {
+    try {
       const parsed = JSON.parse(Buffer.from(state, "base64").toString());
       user_type_for_signup = parsed.user_type_for_signup;
     }
-    catch(err) {
+    catch (err) {
       console.error("Failed to parse state parameter:", err);
       return res.status(400).json({
         success: false,
@@ -129,12 +129,12 @@ async function googleLocalStorageBasedLogin(req, res, next) {
     }
   }
 
-  try{
+  try {
 
     const { token, user } = await authService.googleAuth(code, user_type_for_signup);
 
     let frontendUrl;
-    switch(process.env.FRONTEND_URL) {
+    switch (process.env.FRONTEND_URL) {
       case "PRODUCTION":
         frontendUrl = process.env.FRONTEND_URL_PRODUCTION;
         break;
@@ -144,13 +144,13 @@ async function googleLocalStorageBasedLogin(req, res, next) {
       default:
         frontendUrl = process.env.FRONTEND_URL_LOCAL;
     }
-     
+
     const redirectPath = user?.role === "CA_USER" ? "/ca/dashboard" : "/sme/dashboard";
 
     // Token in hash fragment so it's never sent to servers
     res.redirect(`${frontendUrl}/auth/callback#token=${token}&redirect=${redirectPath}`);
   }
-  catch(err) {
+  catch (err) {
     console.error("Google auth failed:", err);
     const frontendUrl = process.env.FRONTEND_URL;
     res.redirect(`${frontendUrl}/login?error=google_auth_failed`);
@@ -168,6 +168,24 @@ async function forgetPassword(req, res) {
       success: true,
       message: "Verification code sent to email",
       result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
+async function verifyCode(req, res) {
+  try {
+    const { email, code } = req.body;
+
+    await authService.verifyResetCode(email, code);
+
+    res.json({
+      success: true,
+      message: "Code verified"
     });
   } catch (error) {
     res.status(400).json({
@@ -202,5 +220,6 @@ module.exports = {
   googleLogin,
   googleLocalStorageBasedLogin,
   forgetPassword,
-  resetUserPassword
+  resetUserPassword,
+  verifyCode
 };

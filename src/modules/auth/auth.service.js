@@ -300,6 +300,28 @@ async function forgetPassword(email) {
     }
 }
 
+async function verifyResetCode(email, code) {
+    const user = await prisma.user.findUnique({
+        where: { email }
+    });
+
+    if (!user || !user.resetPasswordToken) {
+        throw new Error("Invalid request");
+    }
+
+    if (new Date() > user.resetPasswordExpiresAt) {
+        throw new Error("Code expired");
+    }
+
+    const isValid = await bcrypt.compare(code, user.resetPasswordToken);
+
+    if (!isValid) {
+        throw new Error("Invalid verification code");
+    }
+
+    return { verified: true };
+}
+
 async function resetPassword(email, code, newPassword) {
     const user = await prisma.user.findUnique({
         where: { email }
@@ -333,10 +355,12 @@ async function resetPassword(email, code, newPassword) {
     return { success: true };
 }
 
+
 module.exports = {
     registerUser,
     loginUser,
     googleAuth,
     forgetPassword,
-    resetPassword
+    resetPassword,
+    verifyResetCode
 };

@@ -33,6 +33,11 @@ router.post(
 )
 
 router.post(
+    '/verifyResetCode',
+    controller.verifyCode
+)
+
+router.post(
     '/resetPassword',
     controller.resetUserPassword
 )

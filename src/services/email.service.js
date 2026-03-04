@@ -1,5 +1,5 @@
 const { Resend } = require('resend');
-const logger = require('../utils/logger');
+const appLogger = require('../utils/logger');
 const fs = require('fs');
 const path = require('path');
 const dayjs = require('dayjs');
@@ -12,14 +12,16 @@ if (!process.env.EMAIL_FROM) {
 
 exports.sendEmail = async ({ to, subject, html }) => {
   try {
-    await resend.emails.send({
+    const response = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to,
       subject,
       html
     });
+    // console.log("Resend response:", response);
+    return response;
   } catch (error) {
-    logger.error('Email send failed', error);
+    throw new Error("Email service failed", error);
   }
 };
 
@@ -44,20 +46,21 @@ exports.sendBookingEmails = async (booking) => {
       .replace(/{{meetingLink}}/g, booking.meetingLink || 'Will be shared soon');
 
     // User email
-    await exports.sendEmail({
+    const userEmailResponse = await exports.sendEmail({
       to: booking.user.email,
       subject: 'Your consultation is confirmed',
       html: baseHtml.replace('{{name}}', booking.user.name)
     });
 
     // CA email
-    await exports.sendEmail({
+    const caEmailResponse = await exports.sendEmail({
       to: booking.caProfile.user.email,
       subject: 'New consultation booked',
       html: baseHtml.replace('{{name}}', booking.caProfile.user.name)
     });
-
+    
+    return { userEmailResponse, caEmailResponse };
   } catch (err) {
-    logger.error('Failed to send booking emails', err);
+    throw new Error("Email service failed", err);
   }
 };

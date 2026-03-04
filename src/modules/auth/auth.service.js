@@ -284,7 +284,7 @@ async function forgetPassword(email) {
             }
         });
 
-        await sendEmail({
+        const response = await sendEmail({
             to: dbUser.email,
             subject: "Numor Password Reset Code",
             html: `
@@ -294,7 +294,11 @@ async function forgetPassword(email) {
         <p>This code will expire in 10 minutes.</p>
       `
         });
-        return { email: dbUser.email };
+
+        if (response?.error) {
+            throw new Error(response.error.message);
+        }
+        return {email: dbUser.email };
     } catch (error) {
         throw error;
     }

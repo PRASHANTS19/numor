@@ -45,17 +45,17 @@ exports.createProfile = async (user, data) => {
 };
 
 exports.updateProfile = async (user, data) => {
-  const existing = await prisma.cAProfile.findUnique({
-    where: { userId: user.userId }
-  });
-
-  if (!existing) {
-    throw new Error('CA profile not found');
-  }
-
-  return prisma.cAProfile.update({
-    where: { userId: user.userId },
-    data
+  return prisma.cAProfile.upsert({
+    where: {
+      userId: user.userId
+    },
+    update: {
+      ...data
+    },
+    create: {
+      userId: user.userId,
+      ...data
+    }
   });
 };
 

@@ -41,5 +41,9 @@ router.post(
     '/resetPassword',
     controller.resetUserPassword
 )
+router.post(
+    '/verifyEmail',
+    controller.verifyEmail
+)
 
 module.exports = router;

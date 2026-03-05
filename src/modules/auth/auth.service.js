@@ -298,7 +298,7 @@ async function forgetPassword(email) {
         if (response?.error) {
             throw new Error(response.error.message);
         }
-        return {email: dbUser.email };
+        return { email: dbUser.email };
     } catch (error) {
         throw error;
     }
@@ -359,6 +359,40 @@ async function resetPassword(email, code, newPassword) {
     return { success: true };
 }
 
+async function verifyEmail(email) {
+    try {
+        if (!email) {
+            throw new Error("Email is required");
+        }
+
+        const existingUser = await prisma.user.findUnique({
+            where: { email }
+        });
+
+        if (existingUser) {
+            throw new Error("Email already registered");
+        }
+
+        const otp = generateOTP();
+
+        const response = await sendEmail({
+            to: email,
+            subject: "Numor Email Verification Code",
+            html: `
+        <h2>Verify Email</h2>
+        <p>Your verification code is:</p>
+        <h1>${otp}</h1>
+      `
+        });
+
+        if (response?.error) {
+            throw new Error(response.error.message);
+        }
+        return { email: email };
+    } catch (error) {
+        throw error;
+    }
+}
 
 module.exports = {
     registerUser,
@@ -366,5 +400,6 @@ module.exports = {
     googleAuth,
     forgetPassword,
     resetPassword,
-    verifyResetCode
+    verifyResetCode,
+    verifyEmail
 };

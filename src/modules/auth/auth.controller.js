@@ -158,6 +158,25 @@ async function googleLocalStorageBasedLogin(req, res, next) {
 
 }
 
+async function verifyEmail(req, res) {
+  try {
+    const { email } = req.body;
+
+    const result = await authService.verifyEmail(email);
+
+    res.json({
+      success: true,
+      message: "Verification code sent to email",
+      result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
 async function forgetPassword(req, res) {
   try {
     const { email } = req.body;
@@ -221,5 +240,6 @@ module.exports = {
   googleLocalStorageBasedLogin,
   forgetPassword,
   resetUserPassword,
-  verifyCode
+  verifyCode,
+  verifyEmail
 };

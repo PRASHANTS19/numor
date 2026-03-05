@@ -3,8 +3,10 @@ const DailyRotateFile = require("winston-daily-rotate-file");
 const path = require("path");
 
 const logFormat = winston.format.printf(
-  ({ timestamp, level, message, stack }) => {
-    return `${timestamp} [${level.toUpperCase()}]: ${stack || message}`;
+  ({ timestamp, level, message, stack, ...meta }) => {
+    return `${timestamp} [${level.toUpperCase()}]: ${
+      stack || message
+    } ${Object.keys(meta).length ? JSON.stringify(meta) : ""}`;
   }
 );
 
@@ -28,8 +30,25 @@ function createLogger(logFolder, fileName) {
   });
 }
 
-const chatbotLogger = createLogger("chatbot", "chatbot");
-const appLogger = createLogger("app", "app");
+function attachErrorMethod(logger) {
+  logger.error = (error, meta = {}) => {
+    logger.error({
+      message: error.message,
+      stack: error.stack,
+      ...meta,
+    });
+  };
+
+  return logger;
+}
+
+const chatbotLogger = attachErrorMethod(
+  createLogger("chatbot", "chatbot")
+);
+
+const appLogger = attachErrorMethod(
+  createLogger("app", "app")
+);
 
 module.exports = {
   chatbotLogger,

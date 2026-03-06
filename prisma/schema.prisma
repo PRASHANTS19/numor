@@ -271,6 +271,7 @@ model CADocument {
   caProfileId BigInt
   type       CADocumentType
   fileKey    String
+  description String
   createdAt  DateTime @default(now())
 
   caProfile  CAProfile @relation(fields: [caProfileId], references: [id])

@@ -11,11 +11,11 @@ const supabase = createClient(
   }
 );
 
-async function upload(key, buffer) {
+async function upload(key, buffer, contentType) {
   const { error } = await supabase.storage
     .from(bucket)
     .upload(key, buffer, {
-      contentType: 'application/pdf',
+      contentType: contentType || 'application/pdf',
       upsert: true
     });
 

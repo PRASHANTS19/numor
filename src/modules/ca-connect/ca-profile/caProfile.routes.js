@@ -2,6 +2,7 @@ const router = require('express').Router();
 const authenticate = require('../../../middlewares/auth.middleware');
 const controller = require('./caProfile.controller');
 const role = require('../../../middlewares/role.middleware');
+const {caUpload } = require('../../../config/upload');
 
 router.get(
     '/', 
@@ -32,4 +33,17 @@ router.delete(
     role('CA_USER'),
     controller.deleteCAProfile);
 
+router.post(
+    '/documents', 
+    authenticate,
+    caUpload.single("file"), 
+    role('CA_USER'),
+    controller.uploadDocument);
+
+router.get(
+  "/documents",
+  authenticate,
+  role("CA_USER"),
+  controller.getDocuments
+);
 module.exports = router;

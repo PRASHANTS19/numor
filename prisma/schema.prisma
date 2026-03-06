@@ -237,19 +237,26 @@ model CAProfile {
   experienceYears Int
   hourlyFee       Decimal       @db.Decimal(10, 2)
   bio             String?
+  profilePhotoKey String?  
   languages       String[]
   specializations String[]
   type            String
-  documentUrl     String
   calendlyUrl     String?
   calComUrl       String?
   zoomEmail       String?       @db.Citext
   whatsappNumber  String?
-  status          CAStatus      @default(PENDING)
+  status          CAStatus      @default(PENDING)  //PENDING APPROVED REJECTED SUSPENDED UNDER_REVIEW
   ratingAvg       Decimal?      @db.Decimal(3, 2)
   ratingCount     Int           @default(0)
+  streetAddress String?
+  city          String?
+  state         String?
+  zipCode       String?
+  country       String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
+
+  documents       CADocument[] 
   analytics       CAAnalytics[]
   bookings        CABooking[]
   user            User          @relation(fields: [userId], references: [id])
@@ -257,6 +264,23 @@ model CAProfile {
   slots           CASlot[]
 
   @@map("ca_profiles")
+}
+
+model CADocument {
+  id         BigInt   @id @default(autoincrement())
+  caProfileId BigInt
+  type       CADocumentType
+  fileKey    String
+  createdAt  DateTime @default(now())
+
+  caProfile  CAProfile @relation(fields: [caProfileId], references: [id])
+
+  @@map("ca_documents")
+}
+
+enum CADocumentType {
+  CERTIFICATION
+  ID_PROOF
 }
 
 model CABooking {
@@ -419,6 +443,7 @@ enum CAStatus {
   APPROVED
   REJECTED
   SUSPENDED
+  UNDER_REVIEW
 }
 
 enum ConsultationMode {

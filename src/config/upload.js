@@ -56,4 +56,62 @@ const upload = multer({
     }
   }
 });
-module.exports = upload;
+
+
+/* ================================
+   NEW STORAGE FOR CA DOCUMENTS
+   (Supabase Upload)
+================================ */
+const caMemoryStorage = multer.memoryStorage();
+
+const caUpload = multer({
+  storage: caMemoryStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter
+});
+
+
+/* ================================
+   COMMON FILE FILTER
+================================ */
+
+function fileFilter(req, file, cb) {
+
+  const allowedExt = [
+    '.pdf',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.jfif'
+  ];
+
+  const allowedMimeTypes = [
+    'application/pdf',
+    'image/png',
+    'image/jpeg',
+    'image/pjpeg'
+  ];
+
+  const ext = path.extname(file.originalname).toLowerCase();
+  console.log("Extension:", ext);
+  console.log("MimeType:", file.mimetype);
+
+  if (
+    allowedExt.includes(ext) &&
+    allowedMimeTypes.includes(file.mimetype)
+  ) {
+    cb(null, true);
+  } else {
+    cb(
+      new Error(
+        'Only PDF, PNG, JPG, JPEG files are allowed for CA uploads'
+      )
+    );
+  }
+}
+
+
+module.exports = {
+  upload,     
+  caUpload   
+};

@@ -1,6 +1,6 @@
 const router = require('express').Router();
 const auth = require('../../middlewares/auth.middleware');
-const upload = require('../../config/upload');
+const {upload} = require('../../config/upload');
 const controller = require('./expense.controller');
 
 // router.post(

@@ -45,5 +45,9 @@ router.post(
     '/verifyEmail',
     controller.verifyEmail
 )
+router.post(
+    '/verifyEmailOtp',
+    controller.verifyEmailOtp
+)
 
 module.exports = router;

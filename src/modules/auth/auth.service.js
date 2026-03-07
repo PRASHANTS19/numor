@@ -4,6 +4,7 @@ const { signToken } = require('../../config/jwt');
 const fetch = require('node-fetch');
 const crypto = require("crypto");
 const { sendEmail } = require("../../services/email.service");
+const redis = require("../../redis/cache");
 
 async function registerUser(data) {
     const sessionId = crypto.randomUUID();
@@ -360,40 +361,75 @@ async function resetPassword(email, code, newPassword) {
 }
 
 async function verifyEmail(email) {
-    try {
-        if (!email) {
-            throw new Error("Email is required");
-        }
-
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
-        });
-
-        if (existingUser) {
-            throw new Error("Email already registered");
-        }
-
-        const otp = generateOTP();
-
-        const response = await sendEmail({
-            to: email,
-            subject: "Numor Email Verification Code",
-            html: `
-        <h2>Verify Email</h2>
-        <p>Your verification code is:</p>
-        <h1>${otp}</h1>
-      `
-        });
-
-        if (response?.error) {
-            throw new Error(response.error.message);
-        }
-        return { email: email };
-    } catch (error) {
-        throw error;
+    if (!email) {
+        throw new Error("Email is required");
     }
+    // Check if already registered
+    const existingUser = await prisma.user.findUnique({
+        where: { email },
+    });
+    if (existingUser) {
+        throw new Error("Email already registered");
+    }
+    // Generate OTP
+    const otp = generateOTP();
+    // Store OTP in Redis with expiry (5 minutes)
+    const key = `email_verification:${email}`;
+
+    const existingOtp = await redis.get(key);
+    if (existingOtp) {
+        throw new Error("OTP already sent. Please wait before requesting again.");
+    }
+    await redis.set(key, otp, { ex: 300 }); // 300 seconds
+    // Send Email
+    const response = await sendEmail({
+        to: email,
+        subject: "Numor Email Verification Code",
+        html: `
+                <h2>Email Verification</h2>
+                <p>Your verification code is:</p>
+                <h1>${otp}</h1>
+                <p>This code will expire in 5 minutes.</p>
+      `,
+    });
+
+    if (response?.error) {
+        throw new Error(response.error.message);
+    }
+
+    return {
+        success: true,
+        message: "OTP sent successfully",
+        email,
+    };
 }
 
+async function verifyEmailOTP(email, code) {
+    if (!email || !code) {
+        throw new Error("Email and Code are required");
+    }
+
+    const key = `email_verification:${email}`;
+
+    const storedOtp = await redis.get(key);
+
+    if (!storedOtp) {
+        throw new Error("Code expired or not found");
+    }
+    console.log("Stored OTP:", storedOtp, "Provided Code:", code);
+    if (storedOtp != code) {
+        throw new Error("Invalid Code");
+    }
+
+    // delete OTP after verification
+    await redis.del(key);
+
+    return {
+        success: true,
+        message: "Email verified successfully",
+        email,
+    };
+}
 module.exports = {
     registerUser,
     loginUser,
@@ -401,5 +437,6 @@ module.exports = {
     forgetPassword,
     resetPassword,
     verifyResetCode,
-    verifyEmail
+    verifyEmail,
+    verifyEmailOTP
 };

@@ -177,6 +177,25 @@ async function verifyEmail(req, res) {
   }
 }
 
+async function verifyEmailOtp(req, res) {
+  try {
+    const { email, code } = req.body;
+
+    const result = await authService.verifyEmailOTP(email, code);
+
+    res.json({
+      success: true,
+      message: "Verification Successful",
+      result
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
+
 async function forgetPassword(req, res) {
   try {
     const { email } = req.body;
@@ -241,5 +260,6 @@ module.exports = {
   forgetPassword,
   resetUserPassword,
   verifyCode,
-  verifyEmail
+  verifyEmail,
+  verifyEmailOtp
 };

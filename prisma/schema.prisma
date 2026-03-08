@@ -37,6 +37,7 @@ model User {
   orgId        BigInt
   userType     String
   email        String        @unique @db.Citext
+  isEmailVerified Boolean       @default(false)
   name         String        @db.Citext
   phone        String?
   address      String?
@@ -271,7 +272,7 @@ model CADocument {
   caProfileId BigInt
   type       CADocumentType
   fileKey    String
-  description String
+  description String?
   createdAt  DateTime @default(now())
 
   caProfile  CAProfile @relation(fields: [caProfileId], references: [id])

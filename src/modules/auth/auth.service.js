@@ -5,6 +5,7 @@ const fetch = require('node-fetch');
 const crypto = require("crypto");
 const { sendEmail } = require("../../services/email.service");
 const redis = require("../../redis/cache");
+const { is } = require('zod/v4/locales');
 
 async function registerUser(data) {
     const sessionId = crypto.randomUUID();
@@ -13,7 +14,12 @@ async function registerUser(data) {
     if (!user.email) {
         throw new Error("User email is required");
     }
-
+    const key = `verified_email:${user.email}`;
+    const isEmailVerified = (await redis.get(key)) ? true : false;
+    if(isEmailVerified) {
+        await redis.del(key);
+    }
+    
     return prisma.$transaction(async (tx) => {
         const existingUser = await tx.user.findUnique({
             where: { email: user.email }
@@ -66,6 +72,7 @@ async function registerUser(data) {
                 orgId: org.id,
                 name: user.name,
                 email: user.email,
+                isEmailVerified,
                 // phone: user.phone,
                 // address: user.address,
                 passwordHash,
@@ -196,6 +203,7 @@ async function googleAuth(code, user_type_for_signup) {
         user = await prisma.user.update({
             where: { id: user.id },
             data: {
+                isEmailVerified: true,
                 googleId: sub,
                 authProvider: "GOOGLE",
                 ...(role && { role })
@@ -215,6 +223,7 @@ async function googleAuth(code, user_type_for_signup) {
                 orgId: org.id,
                 name,
                 email,
+                isEmailVerified: true,
                 googleId: sub,
                 authProvider: "GOOGLE",
                 userType: "INTERNAL",
@@ -423,6 +432,7 @@ async function verifyEmailOTP(email, code) {
 
     // delete OTP after verification
     await redis.del(key);
+    await redis.set(`verified_email:${email}`, "true", { ex: 3600 }); // Mark email as verified for 1 hour
 
     return {
         success: true,

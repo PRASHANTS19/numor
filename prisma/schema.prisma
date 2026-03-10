@@ -235,14 +235,14 @@ model KpiSnapshot {
 model CAProfile {
   id              BigInt        @id @default(autoincrement())
   userId          BigInt        @unique
-  registrationNo  String        @unique
-  experienceYears Int
-  hourlyFee       Decimal       @db.Decimal(10, 2)
+  registrationNo  String?        @unique
+  experienceYears Int?
+  hourlyFee       Decimal?       @db.Decimal(10, 2)
   bio             String?
   profilePhotoKey String?  
   languages       String[]
   specializations String[]
-  type            String
+  type            String?
   calendlyUrl     String?
   calComUrl       String?
   zoomEmail       String?       @db.Citext

@@ -37,4 +37,10 @@ router.get(
     controller.getProfilePhoto
 );
 
+
+router.delete(
+    '/profilePhoto',
+    controller.deleteProfilePhoto
+);
+
 module.exports = router;

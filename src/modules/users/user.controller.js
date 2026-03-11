@@ -83,3 +83,13 @@ exports.getProfilePhoto = async (req, res, next) => {
     res.status(500).json({ message: err.message });
   }
 }
+
+exports.deleteProfilePhoto = async (req, res, next) => {
+  try {
+    const user = req.user;
+    await service.deleteProfilePhoto(user);
+    res.json({ success: true, message: "Profile photo deleted successfully" });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}

@@ -145,3 +145,22 @@ exports.getProfilePhoto = async (user) => {
 
   return url;
 };
+
+exports.deleteProfilePhoto = async (user) => {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: BigInt(user.userId) },
+    select: { profilePhotoKey: true }
+  });
+  console.log('Deleting profile photo for user:', user.userId, 'Photo key:', dbUser);
+  if (!dbUser || !dbUser.profilePhotoKey) {
+    throw new Error("No profile photo to delete");
+  }
+
+  await storageService.remove(dbUser.profilePhotoKey);
+
+  await prisma.user.update({
+    where: { id: BigInt(user.userId) },
+    data: { profilePhotoKey: null }
+  });
+
+};

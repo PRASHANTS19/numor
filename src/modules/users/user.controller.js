@@ -67,8 +67,8 @@ exports.uploadProfilePhoto = async (req, res, next) => {
   try {
     const user = req.user;
     const file = req.file;
-    const photoUrl = await service.uploadProfilePhoto(user, file);
-    res.json({ success: true, data: { photoUrl } });
+    const profilePhotoUrl = await service.uploadProfilePhoto(user, file);
+    res.json({ success: true, profilePhotoUrl });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

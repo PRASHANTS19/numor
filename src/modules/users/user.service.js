@@ -127,7 +127,11 @@ exports.uploadProfilePhoto = async (user, file) => {
       profilePhotoKey: fileKey
     }
   });
-  return { fileKey };
+    // generate signed URL
+  const signedUrl = await storageService.getSignedUrl(fileKey);
+
+  return signedUrl;
+
 };
 
 exports.getProfilePhoto = async (user) => {

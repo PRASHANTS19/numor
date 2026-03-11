@@ -93,17 +93,6 @@ exports.getDocuments = async (req, res) => {
   }
 };
 
-// exports.uploadProfilePhoto = async (req, res, next) => {
-//   try {
-//     const user = req.user;
-//     const file = req.file;
-//     const photoUrl = await caProfileService.uploadProfilePhoto(user, file);
-//     res.json({ success: true, data: { photoUrl } });
-//   } catch (err) {
-//     next(err);
-//   }
-// };
-
 // exports.uploadCertificate = async (req, res, next) => {
 //     try {
 //       const user = req.user;

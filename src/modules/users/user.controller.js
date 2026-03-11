@@ -62,3 +62,24 @@ exports.getCurrentUser = async (req, res, next) => {
     }
 
 };
+
+exports.uploadProfilePhoto = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const file = req.file;
+    const photoUrl = await service.uploadProfilePhoto(user, file);
+    res.json({ success: true, data: { photoUrl } });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getProfilePhoto = async (req, res, next) => {
+  try {
+    const user = req.user;
+    const photoUrl = await service.getProfilePhoto(user);
+    res.json({ success: true, photoUrl });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+}

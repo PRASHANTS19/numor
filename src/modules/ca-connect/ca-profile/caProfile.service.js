@@ -85,29 +85,6 @@ exports.uploadDocument = async (user, file, type) => {
   const fileBuffer = file.buffer;
   let fileKey;
   switch (type) {
-    case "PROFILE_PHOTO":
-      const allowedImageTypes = [
-        "image/png",
-        "image/jpeg",
-        "image/jpg",
-        "image/webp",
-        "image/jfif"
-      ];
-
-      if (!allowedImageTypes.includes(file.mimetype)) {
-        throw new Error("Profile photo must be PNG, JPG, JPEG, WEBP or JFIF");
-      }
-
-      fileKey = `ca/profile-photo/${user.userId}/${Date.now()}-${file.originalname}`;
-      await storageService.upload(fileKey, fileBuffer, file.mimetype);
-      await prisma.cAProfile.update({
-        where: { userId: user.userId },
-        data: {
-          profilePhotoKey: fileKey
-        }
-      });
-      return { type, fileKey };
-
     case "CERTIFICATION":
       fileKey = `ca/certificates/${user.userId}/${Date.now()}-${file.originalname}`;
       await storageService.upload(fileKey, fileBuffer, file.mimetype);
@@ -146,17 +123,6 @@ exports.getDocuments = async (user) => {
     throw new Error("CA profile not found");
   }
 
-  let profilePhoto = null;
-
-  if (caProfile.profilePhotoKey) {
-    const url = await storageService.getSignedUrl(caProfile.profilePhotoKey);
-
-    profilePhoto = {
-      type: "PROFILE_PHOTO",
-      url
-    };
-  }
-
   const documents = await Promise.all(
     caProfile.documents.map(async (doc) => {
       const url = await storageService.getSignedUrl(doc.fileKey);
@@ -170,31 +136,11 @@ exports.getDocuments = async (user) => {
   );
 
   return {
-    profilePhoto,
     documents
   };
 };
 
-// exports.uploadProfilePhoto = async (user, file) => {
-//   const existing = await prisma.cAProfile.findUnique({
-//     where: { userId: user.userId }
-//   });
 
-//   if (existing?.profilePhotoKey) {
-//     await storageService.remove(existing.profilePhotoKey);
-//   }
-//   const fileBuffer = file.buffer;
-//   const fileKey = `ca-profile-photos/${user.userId}/${Date.now()}-${file.originalname}`;
-//   await storageService.upload(fileKey, fileBuffer, file.mimetype);
-//   await prisma.cAProfile.update({
-//     where: { userId: user.userId },
-//     data: {
-//       profilePhotoKey: fileKey
-//     }
-//   });
-
-//   return { fileKey };
-// };
 
 // exports.uploadCertificate = async (user, file) => {
 

@@ -31,8 +31,10 @@ function createLogger(logFolder, fileName) {
 }
 
 function attachErrorMethod(logger) {
+  const originalError = logger.error.bind(logger);
+
   logger.error = (error, meta = {}) => {
-    logger.error({
+    originalError({
       message: error.message,
       stack: error.stack,
       ...meta,

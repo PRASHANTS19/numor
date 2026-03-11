@@ -33,32 +33,31 @@ model Organization {
 }
 
 model User {
-  id           BigInt        @id @default(autoincrement())
-  orgId        BigInt
-  userType     String
-  email        String        @unique @db.Citext
-  isEmailVerified Boolean       @default(false)
-  name         String        @db.Citext
-  phone        String?
-  address      String?
-  passwordHash String?
-  authProvider AuthProvider  @default(LOCAL)
-  googleId     String?       @unique
-  role         Role          @default(SME_USER)
-  isActive     Boolean       @default(true)
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  resetPasswordToken      String?
-  resetPasswordExpiresAt  DateTime?
-  
-  caBookings   CABooking[]
-  caProfile    CAProfile?
-  caReviews    CAReview[]
-  clients      Client[]
-  expenses     ExpenseBill[]
-  invoices     InvoiceBill[]
-  organization Organization  @relation(fields: [orgId], references: [id])
+  id                     BigInt        @id @default(autoincrement())
+  orgId                  BigInt
+  userType               String
+  email                  String        @unique @db.Citext
+  name                   String        @db.Citext
+  phone                  String?
+  address                String?
+  passwordHash           String?
+  profilePhotoKey        String?
+  authProvider           AuthProvider  @default(LOCAL)
+  googleId               String?       @unique
+  role                   Role          @default(SME_USER)
+  isActive               Boolean       @default(true)
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  resetPasswordExpiresAt DateTime?
+  resetPasswordToken     String?
+  isEmailVerified        Boolean       @default(false)
+  caBookings             CABooking[]
+  caProfile              CAProfile?
+  caReviews              CAReview[]
+  clients                Client[]
+  expenses               ExpenseBill[]
+  invoices               InvoiceBill[]
+  organization           Organization  @relation(fields: [orgId], references: [id])
 
   @@map("users")
 }
@@ -238,7 +237,6 @@ model CAProfile {
   experienceYears Int
   hourlyFee       Decimal       @db.Decimal(10, 2)
   bio             String?
-  profilePhotoKey String?  
   languages       String[]
   specializations String[]
   type            String
@@ -246,20 +244,19 @@ model CAProfile {
   calComUrl       String?
   zoomEmail       String?       @db.Citext
   whatsappNumber  String?
-  status          CAStatus      @default(PENDING)  //PENDING APPROVED REJECTED SUSPENDED UNDER_REVIEW
+  status          CAStatus      @default(PENDING)
   ratingAvg       Decimal?      @db.Decimal(3, 2)
   ratingCount     Int           @default(0)
-  streetAddress String?
-  city          String?
-  state         String?
-  zipCode       String?
-  country       String?
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
-
-  documents       CADocument[] 
+  city            String?
+  country         String?
+  state           String?
+  streetAddress   String?
+  zipCode         String?
   analytics       CAAnalytics[]
   bookings        CABooking[]
+  documents       CADocument[]
   user            User          @relation(fields: [userId], references: [id])
   reviews         CAReview[]
   slots           CASlot[]
@@ -268,21 +265,15 @@ model CAProfile {
 }
 
 model CADocument {
-  id         BigInt   @id @default(autoincrement())
+  id          BigInt         @id @default(autoincrement())
   caProfileId BigInt
-  type       CADocumentType
-  fileKey    String
+  type        CADocumentType
+  fileKey     String
+  createdAt   DateTime       @default(now())
   description String?
-  createdAt  DateTime @default(now())
-
-  caProfile  CAProfile @relation(fields: [caProfileId], references: [id])
+  caProfile   CAProfile      @relation(fields: [caProfileId], references: [id])
 
   @@map("ca_documents")
-}
-
-enum CADocumentType {
-  CERTIFICATION
-  ID_PROOF
 }
 
 model CABooking {
@@ -385,10 +376,12 @@ model checkpoint_blobs {
   blob          Bytes?
 
   @@id([thread_id, checkpoint_ns, channel, version])
+  @@ignore
 }
 
 model checkpoint_migrations {
   v Int @id
+  @@ignore
 }
 
 model checkpoint_writes {
@@ -402,6 +395,7 @@ model checkpoint_writes {
   blob          Bytes
 
   @@id([thread_id, checkpoint_ns, checkpoint_id, task_id, idx])
+  @@ignore
 }
 
 model checkpoints {
@@ -414,6 +408,12 @@ model checkpoints {
   metadata             Json    @default("{}")
 
   @@id([thread_id, checkpoint_ns, checkpoint_id])
+  @@ignore
+}
+
+enum CADocumentType {
+  CERTIFICATION
+  ID_PROOF
 }
 
 enum AuthProvider {

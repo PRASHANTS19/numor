@@ -5,6 +5,7 @@ const validate = require('../../middlewares/validate.middleware');
 
 const controller = require('./user.controller');
 const validator = require('./user.validator');
+const { caUpload } = require('../../config/upload');
 
 
 router.use(auth);
@@ -22,5 +23,18 @@ router.put('/update', validate(validator.updateUserSchema), controller.updateUse
 //     validate(validator.updateStatusSchema),
 //     controller.updateUserStatus
 // );
+
+
+router.post(
+    '/profilePhoto',
+    caUpload.single("file"),
+    controller.uploadProfilePhoto
+);
+
+
+router.get(
+    '/profilePhoto',
+    controller.getProfilePhoto
+);
 
 module.exports = router;

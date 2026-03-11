@@ -1,5 +1,6 @@
 const bcrypt = require('bcrypt');
 const prisma = require('../../config/database');
+const storageService = require('../../storage/storage.service');
 
 exports.createUser = async (admin, data)=>{
     const {email, name, userType, password} = data;
@@ -93,4 +94,54 @@ exports.updateUserStatus = async (admin, userId, isActive) => {
         },
         data: { isActive },
     });
+};
+
+exports.uploadProfilePhoto = async (user, file) => {
+  const existing = await prisma.user.findUnique({
+    where: { id: BigInt(user.userId) },
+    select: { profilePhotoKey: true }
+  });
+
+  if (existing?.profilePhotoKey) {
+    await storageService.remove(existing.profilePhotoKey);
+  }
+  const allowedImageTypes = [
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "image/jfif"
+  ];
+
+  if (!allowedImageTypes.includes(file.mimetype)) {
+    throw new Error("Profile photo must be PNG, JPG, JPEG, WEBP or JFIF");
+  }
+
+  fileKey = `user/profile-photo/${user.userId}/${Date.now()}-${file.originalname}`;
+  const fileBuffer = file.buffer;
+
+  await storageService.upload(fileKey, fileBuffer, file.mimetype);
+  await prisma.user.update({
+    where: { id: user.userId },
+    data: {
+      profilePhotoKey: fileKey
+    }
+  });
+  return { fileKey };
+};
+
+exports.getProfilePhoto = async (user) => {
+
+  const dbUser = await prisma.user.findUnique({
+    where: { id: BigInt(user.userId) },
+    select: { profilePhotoKey: true }
+  });
+
+  if (!dbUser || !dbUser.profilePhotoKey) {
+    return { profilePhoto: null };
+  }
+
+  const url = await storageService.getSignedUrl(dbUser.profilePhotoKey);
+
+  return url;
 };

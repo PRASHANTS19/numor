@@ -2,48 +2,48 @@ const router = require('express').Router();
 const authenticate = require('../../../middlewares/auth.middleware');
 const controller = require('./caProfile.controller');
 const role = require('../../../middlewares/role.middleware');
-const {caUpload } = require('../../../config/upload');
+const { caUpload } = require('../../../config/upload');
 
 router.get(
-    '/', 
-    authenticate, 
+    '/',
+    authenticate,
     controller.listCAs);
 
 router.get(
-    '/me', 
+    '/me',
     authenticate,
-    role('CA_USER'), 
+    role('CA_USER'),
     controller.getCAProfile);
 
 router.post(
-    '/', 
+    '/',
     authenticate,
-    role('CA_USER'), 
+    role('CA_USER'),
     controller.createCAProfile);
 
 router.put(
-    '/', 
+    '/',
     authenticate,
-    role('CA_USER'), 
+    role('CA_USER'),
     controller.updateCAProfile);
 
 router.delete(
-    '/', 
-    authenticate, 
+    '/',
+    authenticate,
     role('CA_USER'),
     controller.deleteCAProfile);
 
 router.post(
-    '/documents', 
+    '/documents',
     authenticate,
-    caUpload.single("file"), 
+    caUpload.single("file"),
     role('CA_USER'),
     controller.uploadDocument);
 
 router.get(
-  "/documents",
-  authenticate,
-  role("CA_USER"),
-  controller.getDocuments
+    "/documents",
+    authenticate,
+    role("CA_USER"),
+    controller.getDocuments
 );
 module.exports = router;

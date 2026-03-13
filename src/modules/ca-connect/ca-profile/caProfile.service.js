@@ -132,6 +132,7 @@ exports.getDocuments = async (user) => {
       return {
         id: doc.id,
         type: doc.type,
+        description: doc.description,
         url
       };
     })

@@ -143,6 +143,36 @@ exports.getDocuments = async (user) => {
   };
 };
 
+exports.deleteDocument = async (user, documentId) => {
+  console.log("Deleting document", { userId: user.userId, documentId });
+  const document = await prisma.cADocument.findFirst({
+    where: {
+      id: BigInt(documentId),
+      caProfile: {
+        userId: BigInt(user.userId)
+      }
+    }
+  });
+
+  if (!document) {
+    throw new Error("Document not found or unauthorized");
+  }
+
+  // delete file from storage
+  await storageService.remove(document.fileKey);
+
+  // delete DB record
+  await prisma.cADocument.delete({
+    where: {
+      id: BigInt(documentId)
+    }
+  });
+
+  return {
+    message: "Document deleted successfully"
+  };
+};
+
 
 
 // exports.uploadCertificate = async (user, file) => {

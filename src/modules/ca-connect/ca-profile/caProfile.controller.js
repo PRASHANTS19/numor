@@ -96,6 +96,23 @@ exports.getDocuments = async (req, res) => {
   }
 };
 
+exports.deleteDocument = async (req, res, next) => {
+  try {
+    const result = await caProfileService.deleteDocument(
+      req.user,
+      req.params.documentId
+    );
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (err) {
+    next(err);
+  }
+};
+
 // exports.uploadCertificate = async (req, res, next) => {
 //     try {
 //       const user = req.user;

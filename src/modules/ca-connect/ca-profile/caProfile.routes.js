@@ -46,4 +46,14 @@ router.get(
     role("CA_USER"),
     controller.getDocuments
 );
+
+
+router.delete(
+    '/documents/:documentId',
+    authenticate,
+    caUpload.single("file"),
+    role('CA_USER'),
+    controller.deleteDocument);
+
+
 module.exports = router;

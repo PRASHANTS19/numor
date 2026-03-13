@@ -58,7 +58,7 @@ exports.uploadDocument = async (req, res) => {
   try {
     const user = req.user;
     const file = req.file;
-    const { type } = req.body;
+    const { type, description } = req.body;
 
     if (!file) {
       return res.status(400).json({ message: "File is required" });
@@ -66,7 +66,10 @@ exports.uploadDocument = async (req, res) => {
     if (!type) {
       return res.status(400).json({ message: "Type is required" });
     }
-    const result = await caProfileService.uploadDocument(user, file, type);
+    if (!description) {
+      return res.status(400).json({ message: "Name of document is required" });
+    }
+    const result = await caProfileService.uploadDocument(user, file, type, description || ""); // Pass description or empty string if not provided
     res.json({
       success: true,
       data: result

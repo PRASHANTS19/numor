@@ -74,7 +74,7 @@ exports.deleteProfile = async (user) => {
   });
 };
 
-exports.uploadDocument = async (user, file, type) => {
+exports.uploadDocument = async (user, file, type, description) => {
 
   const caProfile = await prisma.cAProfile.findUnique({
     where: { userId: user.userId }
@@ -92,6 +92,7 @@ exports.uploadDocument = async (user, file, type) => {
         data: {
           caProfileId: caProfile.id,
           type: "CERTIFICATION",
+          description,
           fileKey
         }
       });
@@ -103,6 +104,7 @@ exports.uploadDocument = async (user, file, type) => {
         data: {
           caProfileId: caProfile.id,
           type: "ID_PROOF",
+          description,
           fileKey
         }
       });

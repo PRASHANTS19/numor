@@ -271,6 +271,7 @@ model CADocument {
   fileKey     String
   createdAt   DateTime       @default(now())
   description String?
+  mimeType    String?
   caProfile   CAProfile      @relation(fields: [caProfileId], references: [id])
 
   @@map("ca_documents")

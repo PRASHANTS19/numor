@@ -1,3 +1,4 @@
+const { mime } = require('zod');
 const prisma = require('../../../config/database');
 const storageService = require('../../../storage/storage.service');
 
@@ -83,6 +84,8 @@ exports.uploadDocument = async (user, file, type, description) => {
     throw new Error("CA profile not found");
   }
   const fileBuffer = file.buffer;
+  const mimeType = file.mimetype;
+
   let fileKey;
   switch (type) {
     case "CERTIFICATION":
@@ -93,7 +96,8 @@ exports.uploadDocument = async (user, file, type, description) => {
           caProfileId: caProfile.id,
           type: "CERTIFICATION",
           description,
-          fileKey
+          fileKey,
+          mimeType
         }
       });
 
@@ -105,7 +109,8 @@ exports.uploadDocument = async (user, file, type, description) => {
           caProfileId: caProfile.id,
           type: "ID_PROOF",
           description,
-          fileKey
+          fileKey,
+          mimeType
         }
       });
 
@@ -133,6 +138,7 @@ exports.getDocuments = async (user) => {
         id: doc.id,
         type: doc.type,
         description: doc.description,
+        mimeType: doc.mimeType,
         url
       };
     })

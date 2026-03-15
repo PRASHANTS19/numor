@@ -80,43 +80,54 @@ exports.uploadDocument = async (user, file, type, description) => {
   const caProfile = await prisma.cAProfile.findUnique({
     where: { userId: user.userId }
   });
+
   if (!caProfile) {
     throw new Error("CA profile not found");
   }
+
   const fileBuffer = file.buffer;
   const mimeType = file.mimetype;
 
   let fileKey;
+
   switch (type) {
+
     case "CERTIFICATION":
       fileKey = `ca/certificates/${user.userId}/${Date.now()}-${file.originalname}`;
-      await storageService.upload(fileKey, fileBuffer, file.mimetype);
-      return prisma.cADocument.create({
-        data: {
-          caProfileId: caProfile.id,
-          type: "CERTIFICATION",
-          description,
-          fileKey,
-          mimeType
-        }
-      });
+      break;
 
     case "ID_PROOF":
       fileKey = `ca/id-proofs/${user.userId}/${Date.now()}-${file.originalname}`;
-      await storageService.upload(fileKey, fileBuffer, file.mimetype);
-      return prisma.cADocument.create({
-        data: {
-          caProfileId: caProfile.id,
-          type: "ID_PROOF",
-          description,
-          fileKey,
-          mimeType
-        }
-      });
+      break;
 
     default:
       throw new Error("Invalid upload type");
   }
+
+  // Upload to storage
+  await storageService.upload(fileKey, fileBuffer, mimeType);
+
+  // Save in DB
+  const document = await prisma.cADocument.create({
+    data: {
+      caProfileId: caProfile.id,
+      type,
+      description,
+      fileKey,
+      mimeType
+    }
+  });
+
+  // Generate signed URL
+  const url = await storageService.getSignedUrl(fileKey);
+
+  return {
+    id: document.id,
+    type: document.type,
+    description: document.description,
+    mimeType: document.mimeType,
+    url
+  };
 };
 exports.getDocuments = async (user) => {
   const caProfile = await prisma.cAProfile.findUnique({

@@ -235,3 +235,29 @@ exports.getMarketplaceCAs = async () => {
     }
   });
 };
+
+exports.getProfileComparison = async (user, caId) => {
+
+  const profile = await prisma.cAProfile.findUnique({
+    where: { id: caId },
+    include: {
+      documents: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error("CA profile not found");
+  }
+
+  const pendingProfile = await prisma.cAProfilePending.findUnique({
+    where: { caProfileId: profile.id },
+    include: {
+      documents: true
+    }
+  });
+
+  return {
+    approvedProfile: profile,
+    pendingProfile: pendingProfile
+  };
+};

@@ -62,11 +62,4 @@ router.post(
   controller.submitPendingProfile
 );
 
-router.get(
-  "/comparison",
-  authenticate,
-  role('CA_USER'),
-  controller.getProfileComparison
-);
-
 module.exports = router;

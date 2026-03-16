@@ -239,7 +239,7 @@ model CAProfile {
   bio             String?
   languages       String[]
   specializations String[]
-  type            String?
+  type            String? 
   calendlyUrl     String?
   calComUrl       String?
   zoomEmail       String?       @db.Citext
@@ -260,6 +260,8 @@ model CAProfile {
   user            User          @relation(fields: [userId], references: [id])
   reviews         CAReview[]
   slots           CASlot[]
+
+  pendingProfiles CAProfilePending[]
 
   @@map("ca_profiles")
 }
@@ -302,6 +304,55 @@ model CABooking {
   @@index([userId])
   @@index([caProfileId])
   @@map("ca_bookings")
+}
+
+model CAProfilePending {
+  id              BigInt   @id @default(autoincrement())
+  caProfileId     BigInt   @unique
+
+  registrationNo  String?
+  experienceYears Int?
+  hourlyFee       Decimal? @db.Decimal(10,2)
+  bio             String?
+  languages       String[]
+  specializations String[]
+  type            String?
+  calendlyUrl     String?
+  calComUrl       String?
+  zoomEmail       String?  @db.Citext
+  whatsappNumber  String?
+
+  city            String?
+  country         String?
+  state           String?
+  streetAddress   String?
+  zipCode         String?
+
+  status          CAPendingStatus @default(UNDER_REVIEW)
+  comment         String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  caProfile       CAProfile @relation(fields: [caProfileId], references: [id])
+  documents       CADocumentPending[]
+
+  @@map("ca_profiles_pending")
+}
+
+model CADocumentPending {
+  id          BigInt   @id @default(autoincrement())
+  pendingId   BigInt
+  type        CADocumentType
+  fileKey     String
+  mimeType    String?
+  description String?
+
+  createdAt   DateTime @default(now())
+
+  pendingProfile CAProfilePending @relation(fields: [pendingId], references: [id])
+
+  @@map("ca_documents_pending")
 }
 
 model CAPayment {
@@ -444,9 +495,12 @@ enum TaxSystem {
 enum CAStatus {
   PENDING
   APPROVED
-  REJECTED
   SUSPENDED
+}
+
+enum CAPendingStatus {
   UNDER_REVIEW
+  REJECTED
 }
 
 enum ConsultationMode {

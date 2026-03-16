@@ -47,19 +47,60 @@ exports.createProfile = async (user, data) => {
 };
 
 exports.updateProfile = async (user, data) => {
-  return prisma.cAProfile.upsert({
-    where: {
-      userId: user.userId
-    },
+
+  const filteredData = filterValidFields(data);
+
+  const profile = await prisma.cAProfile.findUnique({
+    where: { userId: user.userId }
+  });
+
+  // first time
+  if (!profile) {
+    return prisma.cAProfile.create({
+      data: {
+        userId: user.userId,
+        ...filteredData
+      }
+    });
+  }
+
+  // if still pending
+  if (profile.status !== "APPROVED") {
+    return prisma.cAProfile.update({
+      where: { userId: user.userId },
+      data: filteredData
+    });
+  }
+
+  // if already approved → save changes to pending
+  return prisma.cAProfilePending.upsert({
+    where: { caProfileId: profile.id },
     update: {
-      ...data
+      ...filteredData,
+      status: "UNDER_REVIEW",   // reset status when CA resubmits
+      comment: null             // optional: clear admin rejection comment
     },
     create: {
-      userId: user.userId,
-      ...data
+      caProfileId: profile.id,
+      ...filteredData,
+      status: "UNDER_REVIEW"
     }
   });
 };
+
+function filterValidFields(data) {
+  return Object.fromEntries(
+    Object.entries(data).filter(([_, value]) => {
+      if (value === null || value === undefined) return false;
+
+      if (typeof value === "string" && value.trim() === "") return false;
+
+      if (Array.isArray(value) && value.length === 0) return false;
+
+      return true;
+    })
+  );
+}
 
 exports.deleteProfile = async (user) => {
   const existing = await prisma.cAProfile.findUnique({
@@ -104,10 +145,39 @@ exports.uploadDocument = async (user, file, type, description) => {
       throw new Error("Invalid upload type");
   }
 
-  // Upload to storage
   await storageService.upload(fileKey, fileBuffer, mimeType);
 
-  // Save in DB
+  // If CA already approved → save to pending
+  if (caProfile.status === "APPROVED") {
+
+    const pending = await prisma.cAProfilePending.upsert({
+      where: { caProfileId: caProfile.id },
+      update: {},
+      create: {
+        caProfileId: caProfile.id
+      }
+    });
+
+    const document = await prisma.cADocumentPending.create({
+      data: {
+        pendingId: pending.id,
+        type,
+        description,
+        fileKey,
+        mimeType
+      }
+    });
+
+    const url = await storageService.getSignedUrl(fileKey);
+    console.log("Uploaded document for approved CA, saved to pending", { documentId: document.id, pendingId: pending.id });
+    return {
+      id: document.id,
+      status: "PENDING_APPROVAL",
+      url
+    };
+  }
+
+  // If profile still pending → save directly
   const document = await prisma.cADocument.create({
     data: {
       caProfileId: caProfile.id,
@@ -118,11 +188,11 @@ exports.uploadDocument = async (user, file, type, description) => {
     }
   });
 
-  // Generate signed URL
   const url = await storageService.getSignedUrl(fileKey);
 
   return {
     id: document.id,
+    status: "UPLOADED",
     type: document.type,
     description: document.description,
     mimeType: document.mimeType,

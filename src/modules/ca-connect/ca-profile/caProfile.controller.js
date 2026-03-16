@@ -79,6 +79,21 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
+exports.getProfileComparison = async (req, res, next) => {
+  try {
+
+    const result = await caProfileService.getProfileComparison(req.user);
+
+    res.json({
+      success: true,
+      data: result
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
 exports.getDocuments = async (req, res) => {
   try {
 
@@ -110,6 +125,21 @@ exports.deleteDocument = async (req, res, next) => {
 
   } catch (err) {
     next(err);
+  }
+};
+
+exports.submitPendingProfile = async (req, res, next) => {
+  try {
+    const result = await caProfileService.submitPendingProfile(req.user);
+
+    res.json({
+      success: true,
+      message: "Profile submitted for review",
+      data: result
+    });
+
+  } catch (error) {
+    next(error);
   }
 };
 

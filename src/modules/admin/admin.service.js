@@ -165,7 +165,7 @@ exports.listRequestsByStatus = async (status) => {
 exports.getPendingCAs = async () => {
   return prisma.cAProfile.findMany({
     where: {
-      status: "PENDING"
+      status: "UNDER_REVIEW"
     },
     include: {
       user: true,
@@ -199,8 +199,8 @@ exports.approveCAProfile = async (caId, adminId) => {
     throw new Error("CA profile not found");
   }
 
-  if (profile.status !== "PENDING") {
-    throw new Error("Profile is not pending approval");
+  if (profile.status !== "UNDER_REVIEW") {
+    throw new Error("Profile is not under review");
   }
 
   return prisma.cAProfile.update({

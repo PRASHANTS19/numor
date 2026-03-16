@@ -77,13 +77,13 @@ exports.updateProfile = async (user, data) => {
     where: { caProfileId: profile.id },
     update: {
       ...filteredData,
-      status: "UNDER_REVIEW",   // reset status when CA resubmits
+      status: "PENDING",   // reset status when CA resubmits
       comment: null             // optional: clear admin rejection comment
     },
     create: {
       caProfileId: profile.id,
       ...filteredData,
-      status: "UNDER_REVIEW"
+      status: "PENDING"
     }
   });
 };
@@ -154,7 +154,9 @@ exports.uploadDocument = async (user, file, type, description) => {
       where: { caProfileId: caProfile.id },
       update: {},
       create: {
-        caProfileId: caProfile.id
+        caProfileId: caProfile.id,
+        status: "PENDING",  
+        comment: null
       }
     });
 
@@ -197,6 +199,93 @@ exports.uploadDocument = async (user, file, type, description) => {
     description: document.description,
     mimeType: document.mimeType,
     url
+  };
+};
+
+exports.submitPendingProfile = async (user) => {
+
+  const profile = await prisma.cAProfile.findUnique({
+    where: { userId: user.userId }
+  });
+
+  if (!profile) {
+    throw new Error("CA profile not found");
+  }
+
+  /**
+   * CASE 1
+   * First time profile submission
+   */
+  if (profile.status === "PENDING") {
+
+    return prisma.cAProfile.update({
+      where: { id: profile.id },
+      data: {
+        status: "UNDER_REVIEW"
+      }
+    });
+  }
+
+  /**
+   * CASE 2
+   * Approved CA updating profile
+   */
+  if (profile.status === "APPROVED") {
+
+    const pendingProfile = await prisma.cAProfilePending.findUnique({
+      where: { caProfileId: profile.id }
+    });
+
+    if (!pendingProfile) {
+      throw new Error("No pending changes found");
+    }
+
+    if (pendingProfile.status !== "PENDING") {
+      throw new Error("Profile already submitted for review");
+    }
+
+    return prisma.cAProfilePending.update({
+      where: { caProfileId: profile.id },
+      data: {
+        status: "UNDER_REVIEW"
+      }
+    });
+  }
+
+  /**
+   * CASE 3
+   * Profile already under review
+   */
+  if (profile.status === "UNDER_REVIEW") {
+    throw new Error("Profile is already under review");
+  }
+
+  throw new Error("Invalid profile state");
+};
+
+exports.getProfileComparison = async (user) => {
+
+  const profile = await prisma.cAProfile.findUnique({
+    where: { userId: user.userId },
+    include: {
+      documents: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error("CA profile not found");
+  }
+
+  const pendingProfile = await prisma.cAProfilePending.findUnique({
+    where: { caProfileId: profile.id },
+    include: {
+      documents: true
+    }
+  });
+
+  return {
+    approvedProfile: profile,
+    pendingProfile: pendingProfile
   };
 };
 exports.getDocuments = async (user) => {

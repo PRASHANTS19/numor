@@ -23,11 +23,48 @@ exports.listApprovedCAs = async () => {
 };
 
 exports.getByUserId = async (user) => {
-  return prisma.cAProfile.findUnique({
-    where: { userId: user.userId }
-  });
-};
 
+  const profile = await prisma.cAProfile.findUnique({
+    where: { userId: user.userId },
+    include: {
+      pendingProfiles: true
+    }
+  });
+
+  if (!profile) {
+    throw new Error("CA profile not found");
+  }
+
+  const pending = profile.pendingProfiles?.[0] || null;
+
+  let pendingChanges = null;
+
+  if (pending) {
+
+    const {
+      id,
+      caProfileId,
+      createdAt,
+      updatedAt,
+      status,
+      comment,
+      ...fields
+    } = pending;
+
+    pendingChanges = {
+      ...filterValidFields(fields),
+      status,
+      comment
+    };
+  }
+
+  const { pendingProfiles, ...approvedProfile } = profile;
+
+  return {
+    approvedProfile,
+    pendingProfile: pendingChanges
+  };
+};
 exports.createProfile = async (user, data) => {
   const existing = await prisma.cAProfile.findUnique({
     where: { userId: user.userId }
@@ -155,7 +192,7 @@ exports.uploadDocument = async (user, file, type, description) => {
       update: {},
       create: {
         caProfileId: caProfile.id,
-        status: "PENDING",  
+        status: "PENDING",
         comment: null
       }
     });
@@ -263,31 +300,6 @@ exports.submitPendingProfile = async (user) => {
   throw new Error("Invalid profile state");
 };
 
-exports.getProfileComparison = async (user) => {
-
-  const profile = await prisma.cAProfile.findUnique({
-    where: { userId: user.userId },
-    include: {
-      documents: true
-    }
-  });
-
-  if (!profile) {
-    throw new Error("CA profile not found");
-  }
-
-  const pendingProfile = await prisma.cAProfilePending.findUnique({
-    where: { caProfileId: profile.id },
-    include: {
-      documents: true
-    }
-  });
-
-  return {
-    approvedProfile: profile,
-    pendingProfile: pendingProfile
-  };
-};
 exports.getDocuments = async (user) => {
   const caProfile = await prisma.cAProfile.findUnique({
     where: { userId: user.userId },

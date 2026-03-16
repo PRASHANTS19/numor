@@ -79,21 +79,6 @@ exports.uploadDocument = async (req, res) => {
   }
 };
 
-exports.getProfileComparison = async (req, res, next) => {
-  try {
-
-    const result = await caProfileService.getProfileComparison(req.user);
-
-    res.json({
-      success: true,
-      data: result
-    });
-
-  } catch (error) {
-    next(error);
-  }
-};
-
 exports.getDocuments = async (req, res) => {
   try {
 

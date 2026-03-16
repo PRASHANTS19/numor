@@ -76,6 +76,11 @@ router.get(
   controller.getMarketplaceCAs   
 );
 
-
+router.get(
+  "/comparison/:caId",
+  authenticate,
+  role('ADMIN'),
+  controller.getProfileComparison
+);
 
 module.exports = router;

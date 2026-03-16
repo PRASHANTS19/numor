@@ -496,9 +496,11 @@ enum CAStatus {
   PENDING
   APPROVED
   SUSPENDED
+  UNDER_REVIEW
 }
 
 enum CAPendingStatus {
+  PENDING
   UNDER_REVIEW
   REJECTED
 }

@@ -55,5 +55,18 @@ router.delete(
     role('CA_USER'),
     controller.deleteDocument);
 
+router.post(
+  "/submit",
+  authenticate,
+  role('CA_USER'),
+  controller.submitPendingProfile
+);
+
+router.get(
+  "/comparison",
+  authenticate,
+  role('CA_USER'),
+  controller.getProfileComparison
+);
 
 module.exports = router;

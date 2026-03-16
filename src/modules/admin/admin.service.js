@@ -161,3 +161,77 @@ exports.listRequestsByStatus = async (status) => {
     }
   });
 };
+
+exports.getPendingCAs = async () => {
+  return prisma.cAProfile.findMany({
+    where: {
+      status: "PENDING"
+    },
+    include: {
+      user: true,
+    //   documents: true
+    },
+    orderBy: {
+      createdAt: "desc"
+    }
+  });
+};
+
+exports.getCAForReview = async (caId) => {
+  return prisma.cAProfile.findUnique({
+    where: {
+      id: BigInt(caId)
+    },
+    include: {
+      user: true,
+      documents: true
+    }
+  });
+};
+
+exports.approveCAProfile = async (caId, adminId) => {
+
+  const profile = await prisma.cAProfile.findUnique({
+    where: { id: BigInt(caId) }
+  });
+
+  if (!profile) {
+    throw new Error("CA profile not found");
+  }
+
+  if (profile.status !== "PENDING") {
+    throw new Error("Profile is not pending approval");
+  }
+
+  return prisma.cAProfile.update({
+    where: {
+      id: BigInt(caId)
+    },
+    data: {
+      status: "APPROVED"
+    }
+  });
+};
+
+exports.rejectCAProfile = async (caId, reason) => {
+
+  return prisma.cAProfile.update({
+    where: {
+      id: BigInt(caId)
+    },
+    data: {
+      status: "REJECTED"
+    }
+  });
+};
+
+exports.getMarketplaceCAs = async () => {
+  return prisma.cAProfile.findMany({
+    where: {
+      status: "APPROVED"
+    },
+    include: {
+      user: true
+    }
+  });
+};

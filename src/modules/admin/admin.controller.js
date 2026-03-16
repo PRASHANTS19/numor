@@ -71,3 +71,68 @@ exports.listRequestsByStatus = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getPendingCAs = async (req, res, next) => {
+  try {
+    const pendingCAs = await adminService.getPendingCAs();
+    res.status(200).json({
+      success: true,
+      data: pendingCAs
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.getCAForReview = async (req, res, next) => {
+  try {
+    const { caId } = req.params;
+    const caDetails = await adminService.getCAForReview(caId);
+    res.status(200).json({
+      success: true,
+      data: caDetails
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+exports.approveCAProfile = async (req, res, next) => {
+  try {
+    const { caId } = req.params;
+    const result = await adminService.approveCAProfile(caId);
+    res.status(200).json({
+      success: true,
+      message: "CA profile approved successfully",
+      data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.rejectCAProfile = async (req, res, next) => {
+  try {
+    const { caId } = req.params;
+    const result = await adminService.rejectCAProfile(caId);
+    res.status(200).json({
+      success: true,
+        message: "CA profile rejected successfully",
+        data: result
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+exports.getMarketplaceCAs = async (req, res, next) => {
+  try {
+    const cas = await adminService.getMarketplaceCAs();
+    res.status(200).json({
+      success: true,
+      data: cas
+    });
+  } catch (err) {
+    next(err);
+    }
+}

@@ -33,10 +33,49 @@ router.get(
 );
 
 router.get(
-  "/admin/ca/requests",
+  "ca/requests",
   authenticate,
   role("ADMIN"),
   controller.listRequestsByStatus
 );
+
+// apis for approval/rejection of CA profile when he creates for the first time
+router.get(
+  "/ca/caprofile/requests",
+  authenticate,
+  role("ADMIN"),
+  controller.getPendingCAs 
+);
+
+router.get(
+  "/ca/caprofile/requests/:caId",
+  authenticate,
+  role("ADMIN"),
+  controller.getCAForReview  
+);
+
+router.get(
+  "/ca/caprofile/:caId/approve",
+  authenticate,
+  role("ADMIN"),
+  controller.approveCAProfile   
+);
+
+
+router.get(
+  "/ca/caprofile/:caId/reject",
+  authenticate,
+  role("ADMIN"),
+  controller.rejectCAProfile   
+);
+
+router.get(
+  "/ca/caprofile/getMarketplaceCAs",
+  authenticate,
+  role("ADMIN"),
+  controller.getMarketplaceCAs   
+);
+
+
 
 module.exports = router;

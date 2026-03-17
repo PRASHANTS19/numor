@@ -332,7 +332,7 @@ exports.getDocuments = async (user) => {
 };
 
 exports.deleteDocument = async (user, documentId) => {
-  console.log("Deleting document", { userId: user.userId, documentId });
+
   const document = await prisma.cADocument.findFirst({
     where: {
       id: BigInt(documentId),
@@ -346,18 +346,61 @@ exports.deleteDocument = async (user, documentId) => {
     throw new Error("Document not found or unauthorized");
   }
 
-  // delete file from storage
-  await storageService.remove(document.fileKey);
+  const caProfile = await prisma.cAProfile.findUnique({
+    where: { userId: user.userId }
+  });
 
-  // delete DB record
-  await prisma.cADocument.delete({
+  // ✅ If not approved → allow direct delete
+  if (caProfile.status !== "APPROVED") {
+
+    await storageService.remove(document.fileKey);
+
+    await prisma.cADocument.delete({
+      where: { id: document.id }
+    });
+
+    return { message: "Document deleted successfully" };
+  }
+
+  // ✅ STEP 1: create/get pending FIRST
+  const pending = await prisma.cAProfilePending.upsert({
+    where: { caProfileId: caProfile.id },
+    update: {},
+    create: {
+      caProfileId: caProfile.id,
+      status: "PENDING",
+      comment: null
+    }
+  });
+
+  // ✅ STEP 2: check duplicate delete request
+  const existing = await prisma.cADocumentPending.findFirst({
     where: {
-      id: BigInt(documentId)
+      pendingId: pending.id,
+      fileKey: document.fileKey,
+      operation: "DELETE"
+    }
+  });
+
+  if (existing) {
+    throw new Error("Delete already requested");
+  }
+
+  // ✅ STEP 3: create delete request
+  await prisma.cADocumentPending.create({
+    data: {
+      pendingId: pending.id,
+      type: document.type,
+      fileKey: document.fileKey,
+      mimeType: document.mimeType,
+      description: document.description,
+      operation: "DELETE"
     }
   });
 
   return {
-    message: "Document deleted successfully"
+    message: "Delete request submitted, please submit profile for review",
+    status: "PENDING"
   };
 };
 

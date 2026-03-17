@@ -113,8 +113,8 @@ exports.approveCAProfile = async (req, res, next) => {
 
 exports.rejectCAProfile = async (req, res, next) => {
   try {
-    const { caId } = req.params;
-    const result = await adminService.rejectCAProfile(caId);
+    const { caId, comment } = req.params;
+    const result = await adminService.rejectCAProfile(caId, comment);
     res.status(200).json({
       success: true,
         message: "CA profile rejected successfully",

@@ -245,6 +245,7 @@ model CAProfile {
   zoomEmail       String?       @db.Citext
   whatsappNumber  String?
   status          CAStatus      @default(PENDING)
+  comment         String?
   ratingAvg       Decimal?      @db.Decimal(3, 2)
   ratingCount     Int           @default(0)
   createdAt       DateTime      @default(now())
@@ -347,12 +348,19 @@ model CADocumentPending {
   fileKey     String
   mimeType    String?
   description String?
+  operation   DocumentOperation @default(ADD)
 
   createdAt   DateTime @default(now())
 
   pendingProfile CAProfilePending @relation(fields: [pendingId], references: [id])
 
   @@map("ca_documents_pending")
+}
+
+enum DocumentOperation {
+  ADD
+  DELETE
+  UPDATE
 }
 
 model CAPayment {

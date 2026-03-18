@@ -165,8 +165,7 @@ async function verifyEmail(req, res) {
     const result = await authService.verifyEmail(email);
 
     res.json({
-      success: true,
-      message: "Verification code sent to email",
+      success: result.success,
       result
     });
   } catch (error) {

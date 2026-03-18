@@ -378,7 +378,11 @@ async function verifyEmail(email) {
         where: { email },
     });
     if (existingUser) {
-        throw new Error("Email already registered");
+        return {
+            success: false,
+            message: "Email is already registered",
+            currentRole: existingUser.role
+        }
     }
     // Generate OTP
     const otp = generateOTP();

@@ -381,7 +381,8 @@ async function verifyEmail(email) {
         return {
             success: false,
             message: "Email is already registered",
-            currentRole: existingUser.role
+            currentRole: existingUser.role,
+            passwordSet: !!existingUser.passwordHash
         }
     }
     // Generate OTP

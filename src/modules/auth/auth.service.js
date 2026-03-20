@@ -16,10 +16,10 @@ async function registerUser(data) {
     }
     const key = `verified_email:${user.email}`;
     const isEmailVerified = (await redis.get(key)) ? true : false;
-    if(isEmailVerified) {
+    if (isEmailVerified) {
         await redis.del(key);
     }
-    
+
     return prisma.$transaction(async (tx) => {
         const existingUser = await tx.user.findUnique({
             where: { email: user.email }
@@ -31,6 +31,22 @@ async function registerUser(data) {
             else if (existingUser.role == "CA_USER" && user.role == "SME_USER")
                 throw new Error('User is already registered as CA.');
             else if (existingUser.role == "SME_USER" && user.role == "CA_USER") {
+                if (!existingUser.passwordHash) {
+                    throw new Error("This account uses social login. Please login via provider.");
+                }
+                if (!user.password) {
+                    throw new Error("Password is required to upgrade role");
+                }
+
+                const isPasswordValid = await bcrypt.compare(
+                    user.password,
+                    existingUser.passwordHash
+                );
+
+                if (!isPasswordValid) {
+                    throw new Error("Invalid credentials. Cannot upgrade role.");
+                }
+
                 const upgradedUser = await tx.user.update({
                     where: { id: existingUser.id },
                     data: {

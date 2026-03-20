@@ -31,8 +31,8 @@ async function registerUser(data) {
             else if (existingUser.role == "CA_USER" && user.role == "SME_USER")
                 throw new Error('User is already registered as CA.');
             else if (existingUser.role == "SME_USER" && user.role == "CA_USER") {
-                if (!existingUser.passwordHash) {
-                    throw new Error("This account uses social login. Please login via provider.");
+                if (!isEmailVerified) {
+                    throw new Error("Email must be verified to upgrade role to CA");
                 }
                 if (!user.password) {
                     throw new Error("Password is required to upgrade role");

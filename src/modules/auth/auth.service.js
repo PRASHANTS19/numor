@@ -411,6 +411,15 @@ async function verifyEmail(email) {
         where: { email },
     });
 
+    if (existingUser) {
+        return {
+            success: false,
+            message: "Email is already registered",
+            currentRole: existingUser.role,
+            passwordSet: !!existingUser.passwordHash
+        }
+    }
+
     // Generate OTP
     const otp = generateOTP();
     // Store OTP in Redis with expiry (5 minutes)
@@ -441,7 +450,6 @@ async function verifyEmail(email) {
         success: true,
         message: "OTP sent successfully",
         email,
-        existingUser: !!existingUser,
         currentRole: existingUser?.role,
         passwordSet: !!existingUser?.passwordHash
     };

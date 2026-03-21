@@ -30,32 +30,49 @@ async function registerUser(data) {
                 throw new Error('User with this email already exists');
             else if (existingUser.role == "CA_USER" && user.role == "SME_USER")
                 throw new Error('User is already registered as CA.');
-            else if (existingUser.role == "SME_USER" && user.role == "CA_USER") {
-                if (!isEmailVerified) {
-                    throw new Error("Email must be verified to upgrade role to CA");
-                }
+            else if (existingUser.role == "SME_USER" && user.role == "CA_USER") {     
+
                 if (!user.password) {
                     throw new Error("Password is required to upgrade role");
                 }
 
-                const isPasswordValid = await bcrypt.compare(
-                    user.password,
-                    existingUser.passwordHash
-                );
+                let upgradedUser;
+                
+                if(!existingUser.passwordHash) { // Set password case
 
-                if (!isPasswordValid) {
-                    throw new Error("Invalid credentials. Cannot upgrade role.");
+                    if (!isEmailVerified) {
+                      throw new Error("Email must be verified to upgrade role to CA");
+                    }
+
+                    const passwordHash = await bcrypt.hash(user.password, 10);
+
+                    upgradedUser = await tx.user.update({
+                        where: { id: existingUser.id },
+                        data: { role: "CA_USER", passwordHash: passwordHash },
+                        include: { organization: true },
+                    });
+
+                }
+                else{ // Verify password case
+
+                    const isPasswordValid = await bcrypt.compare(
+                        user.password,
+                        existingUser.passwordHash
+                    );
+
+                    if (!isPasswordValid) {
+                        throw new Error("Invalid credentials. Cannot upgrade role.");
+                    }
+
+                    upgradedUser = await tx.user.update({
+                        where: { id: existingUser.id },
+                        data: { role: "CA_USER" },
+                        include: { organization: true }
+                    });
+
                 }
 
-                const upgradedUser = await tx.user.update({
-                    where: { id: existingUser.id },
-                    data: {
-                        role: "CA_USER"
-                    },
-                    include: {
-                        organization: true,
-                    },
-                })
+
                 const token = signToken(
                     {
                         userId: upgradedUser.id.toString(),
@@ -68,7 +85,7 @@ async function registerUser(data) {
                     { expiresIn: '7d' }
                 );
 
-                return { token, user: upgradedUser };
+                return { token, user: {...upgradedUser, passwordHash: null} };
             }
         }
 
@@ -393,14 +410,7 @@ async function verifyEmail(email) {
     const existingUser = await prisma.user.findUnique({
         where: { email },
     });
-    if (existingUser) {
-        return {
-            success: false,
-            message: "Email is already registered",
-            currentRole: existingUser.role,
-            passwordSet: !!existingUser.passwordHash
-        }
-    }
+
     // Generate OTP
     const otp = generateOTP();
     // Store OTP in Redis with expiry (5 minutes)
@@ -431,6 +441,9 @@ async function verifyEmail(email) {
         success: true,
         message: "OTP sent successfully",
         email,
+        existingUser: !!existingUser,
+        currentRole: existingUser?.role,
+        passwordSet: !!existingUser?.passwordHash
     };
 }
 

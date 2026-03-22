@@ -420,7 +420,6 @@ model CASlot {
   endTime     DateTime
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
-  booking     CABooking? @relation("CASlotToBooking", fields: [bookingId], references: [id])
   caProfile   CAProfile  @relation(fields: [caProfileId], references: [id])
 
   @@index([caProfileId])

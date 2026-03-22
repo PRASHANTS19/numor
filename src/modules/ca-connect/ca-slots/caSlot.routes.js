@@ -13,9 +13,9 @@ router.post(
 
 // Get slots for users
 router.get(
-    '/:caProfileId/slots',
+    '/slots',
     authenticate,
-    controller.getSlotsByDate
+    controller.getSlots
 );
 
 // CA blocks a slot

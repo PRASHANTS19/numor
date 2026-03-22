@@ -304,7 +304,12 @@ exports.getDocuments = async (user) => {
   const caProfile = await prisma.cAProfile.findUnique({
     where: { userId: user.userId },
     include: {
-      documents: true
+      documents: true,
+      pendingProfiles: {
+        include: {
+          documents: true
+        }
+      }
     }
   });
 
@@ -312,8 +317,72 @@ exports.getDocuments = async (user) => {
     throw new Error("CA profile not found");
   }
 
+  const pending = caProfile.pendingProfiles?.[0] || null;
+
+  // Step 1: Group base documents by type (array)
+  const docMap = new Map();
+
+  for (const doc of caProfile.documents) {
+    if (!docMap.has(doc.type)) {
+      docMap.set(doc.type, []);
+    }
+
+    docMap.get(doc.type).push({
+      id: doc.id,
+      type: doc.type,
+      description: doc.description,
+      mimeType: doc.mimeType,
+      fileKey: doc.fileKey,
+      source: "BASE"
+    });
+  }
+
+  // Step 2: Apply pending operations
+  if (pending) {
+    for (const pDoc of pending.documents) {
+      const key = pDoc.type;
+
+      // ✅ DELETE → remove only matching fileKey
+      if (pDoc.operation === "DELETE") {
+        if (docMap.has(key)) {
+          const filtered = docMap
+            .get(key)
+            .filter(d => d.fileKey !== pDoc.fileKey);
+
+          if (filtered.length > 0) {
+            docMap.set(key, filtered);
+          } else {
+            docMap.delete(key);
+          }
+        }
+      }
+
+      // ✅ ADD → append new doc
+      else if (pDoc.operation === "ADD") {
+        if (!docMap.has(key)) {
+          docMap.set(key, []);
+        }
+
+        docMap.get(key).push({
+          id: pDoc.id,
+          type: pDoc.type,
+          description: pDoc.description,
+          mimeType: pDoc.mimeType,
+          fileKey: pDoc.fileKey,
+          source: "PENDING"
+        });
+      }
+
+      // (Optional) UPDATE handling can be added here later
+    }
+  }
+
+  // Step 3: Flatten all documents
+  const allDocs = Array.from(docMap.values()).flat();
+
+  // Step 4: Generate signed URLs
   const documents = await Promise.all(
-    caProfile.documents.map(async (doc) => {
+    allDocs.map(async (doc) => {
       const url = await storageService.getSignedUrl(doc.fileKey);
 
       return {
@@ -321,7 +390,8 @@ exports.getDocuments = async (user) => {
         type: doc.type,
         description: doc.description,
         mimeType: doc.mimeType,
-        url
+        url,
+        source: doc.source
       };
     })
   );

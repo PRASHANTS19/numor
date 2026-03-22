@@ -3,55 +3,92 @@ const dayjs = require('dayjs');
 const isSameOrBefore = require('dayjs/plugin/isSameOrBefore');
 const isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
 
-
-exports.createSlots = async (user, payload) => {
-    const { date, startTime, endTime, slotDuration, buffer } = payload;
+exports.createOrUpdateSlots = async (user, payload) => {
     const caProfile = await prisma.cAProfile.findUnique({
         where: { userId: user.userId }
     });
-    console.log('user', user);
-    console.log('caProfileId', caProfile.id);
-    const slots = [];
 
-    let current = dayjs(`${date} ${startTime}`);
-    const end = dayjs(`${date} ${endTime}`);
-
-    while (current.isBefore(end)) {
-        const slotEnd = current.add(slotDuration, "minute");
-
-        if (slotEnd.isAfter(end)) break;
-
-        slots.push({
-            caProfileId: caProfile.id,
-            date: dayjs(date).startOf("day").toDate(),
-            startTime: current.toDate(),
-            endTime: slotEnd.toDate(),
-        });
-
-        current = slotEnd.add(buffer, "minute");
-
-        if (!current.isBefore(end)) break;
+    if (!caProfile) {
+        throw new Error("CA profile not found");
     }
 
-    // console.log(slots.map(s =>
-    //     `${dayjs(s.startTime).format('HH:mm')} - ${dayjs(s.endTime).format('HH:mm')}`
-    // ));
+    const allSlots = [];
 
+    for (const [day, daySlots] of Object.entries(payload)) {
 
-    return prisma.cASlot.createMany({
-        data: slots,
-        skipDuplicates: true
-    });
+        for (const slot of daySlots) {
+            const { startTime, endTime, duration, buffer, typeOfCall } = slot;
+
+            let current = dayjs(`2000-01-01 ${startTime}`);
+            const end = dayjs(`2000-01-01 ${endTime}`);
+
+            // ✅ validation
+            if (!current.isBefore(end)) {
+                throw new Error(`Invalid time range for ${day}`);
+            }
+
+            while (current.isBefore(end)) {
+                const slotEnd = current.add(duration, "minute");
+
+                if (slotEnd.isAfter(end)) break;
+
+                allSlots.push({
+                    caProfileId: caProfile.id,
+                    day: day.toUpperCase(),
+                    typeOfCall: typeOfCall || "BOTH",
+                    startTime: current.format("HH:mm"),
+                    endTime: slotEnd.format("HH:mm"),
+                });
+
+                current = slotEnd.add(buffer, "minute");
+            }
+        }
+    }
+
+    const [deletedSlots, createdSlots] = await prisma.$transaction([
+        prisma.cASlot.deleteMany({
+            where: { caProfileId: caProfile.id }
+        }),
+        prisma.cASlot.createMany({
+            data: allSlots
+        })
+    ]);
+
+    return {
+        deletedCount: deletedSlots.count,
+        createdCount: createdSlots.count
+    };
+};
+const dayOrder = {
+    MONDAY: 1,
+    TUESDAY: 2,
+    WEDNESDAY: 3,
+    THURSDAY: 4,
+    FRIDAY: 5,
+    SATURDAY: 6,
+    SUNDAY: 7
 };
 
-exports.getSlots = async (caProfileId, date) => {
-    return prisma.cASlot.findMany({
-        where: {
-            caProfileId: BigInt(caProfileId),
-            date: dayjs(date).startOf('day').toDate()
-        },
-        orderBy: { startTime: 'asc' }
+exports.getSlots = async (user) => {
+    const caProfile = await prisma.cAProfile.findUnique({
+        where: { userId: user.userId }
     });
+
+    if (!caProfile) {
+        throw new Error("CA profile not found");
+    }
+
+    const slots = await prisma.cASlot.findMany({
+        where: { caProfileId: caProfile.id }
+    });
+
+    slots.sort((a, b) => {
+        if (dayOrder[a.day] !== dayOrder[b.day]) {
+            return dayOrder[a.day] - dayOrder[b.day];
+        }
+        return a.startTime.localeCompare(b.startTime);
+    });
+    return slots;
 };
 
 exports.blockSlot = async (slotId, caProfileId) => {

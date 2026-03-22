@@ -312,6 +312,7 @@ model CABooking {
   payment          CAPayment?
   review           CAReview?
 
+  @@unique([slotId, date])
   @@index([userId])
   @@index([caProfileId])
   @@index([slotId, date]) 
@@ -527,6 +528,7 @@ enum CAStatus {
   APPROVED // When the CA profile is approved and active
   SUSPENDED // When the CA profile is temporarily suspended due to issues or violations
   UNDER_REVIEW // When the CA profile is under review for the first time after being submitted for approval by CA (Occurs only once in the lifecycle of a CA profile)
+  REJECTED // When the updations are rejected and currently active CA profile remains unchanged
 }
 
 enum CAPendingStatus {
@@ -560,4 +562,14 @@ enum SlotStatus {
   AVAILABLE
   HOLD
   BOOKED
+}
+
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
 }

@@ -5,14 +5,14 @@ const controller = require('./admin.controller');
 
 
 router.post(
-    "/ca/:caProfileId/approve",
+    "/ca/:caProfileId/approveUpdate",
     authenticate,
     role('ADMIN'),
     controller.approveCAProfileUpdate
 );
 
 router.post(
-    "/ca/:caProfileId/reject",
+    "/ca/:caProfileId/rejectUpdate",
     authenticate,
     role('ADMIN'),
     controller.rejectCAProfileUpdate

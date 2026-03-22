@@ -286,12 +286,14 @@ model CABooking {
   userId           BigInt
   caProfileId      BigInt
   slotId           BigInt           @unique
+  date        DateTime
   consultationMode ConsultationMode
   scheduledAt      DateTime
   durationMinutes  Int              @default(60)
   meetingLink      String?
   meetingProvider  String?
   amount           Decimal          @db.Decimal(15, 2)
+  tax           Decimal          @db.Decimal(15, 2)
   currency         String           @default("INR")
   status           BookingStatus    @default(INITIATED)
   createdAt        DateTime         @default(now())
@@ -412,11 +414,10 @@ model CAAnalytics {
 model CASlot {
   id          BigInt     @id @default(autoincrement())
   caProfileId BigInt
-  date        DateTime
+  day         String?
+  typeOfCall  CASlotTypeOfCall @default(BOTH)
   startTime   DateTime
   endTime     DateTime
-  status      SlotStatus @default(AVAILABLE)
-  bookingId   BigInt?    @unique
   createdAt   DateTime   @default(now())
   updatedAt   DateTime   @updatedAt
   booking     CABooking? @relation("CASlotToBooking", fields: [bookingId], references: [id])
@@ -474,6 +475,17 @@ model checkpoints {
 enum CADocumentType {
   CERTIFICATION
   ID_PROOF
+}
+
+enum CASlotTypeOfCall {
+  BOTH
+  PHONE
+  VIDEO
+}
+
+enum CABOOKINGTypeOfCall {
+  PHONE
+  VIDEO
 }
 
 enum AuthProvider {

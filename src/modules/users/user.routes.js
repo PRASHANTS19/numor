@@ -2,7 +2,7 @@ const router = require('express').Router();
 const auth = require('../../middlewares/auth.middleware');
 const allowRoles = require('../../middlewares/role.middleware');
 const validate = require('../../middlewares/validate.middleware');
-
+const CAcontroller = require('../ca-connect/ca-profile/caProfile.controller');
 const controller = require('./user.controller');
 const validator = require('./user.validator');
 const { caUpload } = require('../../config/upload');
@@ -42,5 +42,9 @@ router.delete(
     '/profilePhoto',
     controller.deleteProfilePhoto
 );
+
+router.get(
+    '/',
+    CAcontroller.listCAs);
 
 module.exports = router;

@@ -102,7 +102,7 @@ exports.updateProfile = async (user, data) => {
   }
 
   // if still pending
-  if (profile.status !== "APPROVED") {
+  if (profile.status == "PENDING" && profile.status !== "APPROVED") {
     return prisma.cAProfile.update({
       where: { userId: user.userId },
       data: filteredData

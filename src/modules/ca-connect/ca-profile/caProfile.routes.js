@@ -5,11 +5,6 @@ const role = require('../../../middlewares/role.middleware');
 const { caUpload } = require('../../../config/upload');
 
 router.get(
-    '/',
-    authenticate,
-    controller.listCAs);
-
-router.get(
     '/me',
     authenticate,
     role('CA_USER'),

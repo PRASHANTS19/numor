@@ -281,31 +281,40 @@ model CADocument {
 }
 
 model CABooking {
-  id               BigInt           @id @default(autoincrement())
-  bookingCode      String           @unique
+  id               BigInt @id @default(autoincrement())
+  bookingCode      String @unique
   userId           BigInt
   caProfileId      BigInt
-  slotId           BigInt           @unique
-  date        DateTime
-  consultationMode ConsultationMode
+  slotId           BigInt   
+
+  date             DateTime 
   scheduledAt      DateTime
-  durationMinutes  Int              @default(60)
+
+  consultationMode ConsultationMode
+  durationMinutes  Int @default(60)
+
   meetingLink      String?
   meetingProvider  String?
-  amount           Decimal          @db.Decimal(15, 2)
-  tax           Decimal          @db.Decimal(15, 2)
-  currency         String           @default("INR")
-  status           BookingStatus    @default(INITIATED)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  caProfile        CAProfile        @relation(fields: [caProfileId], references: [id])
-  user             User             @relation(fields: [userId], references: [id])
+
+  amount           Decimal @db.Decimal(15, 2)
+  tax              Decimal @db.Decimal(15, 2)
+  currency         String @default("INR")
+
+  status           BookingStatus @default(INITIATED)
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  caProfile        CAProfile @relation(fields: [caProfileId], references: [id])
+  user             User @relation(fields: [userId], references: [id])
+  slot             CASlot @relation(fields: [slotId], references: [id]) // ✅ correct
+
   payment          CAPayment?
   review           CAReview?
-  slot             CASlot?          @relation("CASlotToBooking")
 
   @@index([userId])
   @@index([caProfileId])
+  @@index([slotId, date]) 
   @@map("ca_bookings")
 }
 
@@ -412,19 +421,20 @@ model CAAnalytics {
 }
 
 model CASlot {
-  id          BigInt     @id @default(autoincrement())
+  id          BigInt   @id @default(autoincrement())
   caProfileId BigInt
   day         String?
   typeOfCall  CASlotTypeOfCall @default(BOTH)
   startTime   DateTime
   endTime     DateTime
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  booking     CABooking? @relation("CASlotToBooking", fields: [bookingId], references: [id])
-  caProfile   CAProfile  @relation(fields: [caProfileId], references: [id])
 
-  @@index([caProfileId, date])
-  @@index([status])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  caProfile   CAProfile @relation(fields: [caProfileId], references: [id])
+  bookings    CABooking[]   // ✅ one-to-many
+
+  @@index([caProfileId, day])
   @@map("ca_slots")
 }
 

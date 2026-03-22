@@ -426,8 +426,8 @@ model CASlot {
   caProfileId BigInt
   day         WeekDay @default(MONDAY)
   typeOfCall  CASlotTypeOfCall @default(BOTH)
-  startTime   DateTime
-  endTime     DateTime
+  startTime   String?
+  endTime     String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -539,7 +539,7 @@ enum CAPendingStatus {
 
 enum ConsultationMode {
   VIDEO
-  AUDIO
+  PHONE
 }
 
 enum BookingStatus {

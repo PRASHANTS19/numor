@@ -4,15 +4,14 @@ exports.createSlots = async (req, res) => {
   const user = req.user;
   const data = req.body;
 
-  const slots = await service.createSlots(user, data);
+  const slots = await service.createOrUpdateSlots(user, data);
   res.json({ success: true, slots });
 };
 
-exports.getSlotsByDate = async (req, res) => {
-  const { caProfileId } = req.params;
-  const { date } = req.query;
+exports.getSlots = async (req, res) => {
+  const user  = req.user;
 
-  const slots = await service.getSlots(caProfileId, date);
+  const slots = await service.getSlots(user);
   res.json(slots);
 };
 

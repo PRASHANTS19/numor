@@ -61,7 +61,7 @@ exports.getByUserId = async (user) => {
   const { pendingProfiles, ...approvedProfile } = profile;
 
   return {
-    approvedProfile,
+    currentProfile: approvedProfile,
     pendingProfile: pendingChanges
   };
 };

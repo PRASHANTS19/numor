@@ -501,16 +501,16 @@ enum TaxSystem {
 }
 
 enum CAStatus {
-  PENDING
-  APPROVED
-  SUSPENDED
-  UNDER_REVIEW
+  PENDING  // Initial status when a CA profile is created but not yet submitted by CA for approval (Occurrs only once in the lifecycle of a CA profile)
+  APPROVED // When the CA profile is approved and active
+  SUSPENDED // When the CA profile is temporarily suspended due to issues or violations
+  UNDER_REVIEW // When the CA profile is under review for the first time after being submitted for approval by CA (Occurs only once in the lifecycle of a CA profile)
 }
 
 enum CAPendingStatus {
-  PENDING
-  UNDER_REVIEW
-  REJECTED
+  PENDING // Initial status when updations are done in currently approved CA profile and not yet submitted by CA for approval 
+  UNDER_REVIEW // When the updations have been submitted for approval by CA 
+  REJECTED // When the updations are rejected and currently active CA profile remains unchanged
 }
 
 enum ConsultationMode {

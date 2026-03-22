@@ -423,8 +423,7 @@ model CASlot {
   booking     CABooking? @relation("CASlotToBooking", fields: [bookingId], references: [id])
   caProfile   CAProfile  @relation(fields: [caProfileId], references: [id])
 
-  @@index([caProfileId, date])
-  @@index([status])
+  @@index([caProfileId])
   @@map("ca_slots")
 }
 

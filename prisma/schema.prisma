@@ -424,7 +424,7 @@ model CAAnalytics {
 model CASlot {
   id          BigInt   @id @default(autoincrement())
   caProfileId BigInt
-  day         String?
+  day         WeekDay @default(MONDAY)
   typeOfCall  CASlotTypeOfCall @default(BOTH)
   startTime   DateTime
   endTime     DateTime

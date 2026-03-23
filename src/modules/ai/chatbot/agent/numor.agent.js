@@ -33,7 +33,7 @@ const baseModel = new ChatGoogleGenerativeAI({
   maxOutputTokens: 548,
   streaming: true, 
 });
-const checkpointer = new MemorySaver();
+// const checkpointer = new MemorySaver();
 // ---- POSTGRES CHECKPOINTER ----
 
 const pool = new Pool({
@@ -43,7 +43,7 @@ const pool = new Pool({
   }
 });
 
-// const checkpointer = new PostgresSaver(pool);
+const checkpointer = new PostgresSaver(pool);
 
 // const checkpointer = PostgresSaver.fromConnString(
 //   process.env.DATABASE_URL,

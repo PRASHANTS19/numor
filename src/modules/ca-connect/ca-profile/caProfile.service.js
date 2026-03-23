@@ -166,7 +166,9 @@ exports.uploadDocument = async (user, file, type, description) => {
   if (!caProfile) {
     throw new Error("CA profile not found");
   }
-
+  if(caProfile.status === "SUSPENDED") {
+    throw new Error("Profile is suspended, cannot update");
+  }
   const fileBuffer = file.buffer;
   const mimeType = file.mimetype;
 
@@ -193,7 +195,10 @@ exports.uploadDocument = async (user, file, type, description) => {
 
     const pending = await prisma.cAProfilePending.upsert({
       where: { caProfileId: caProfile.id },
-      update: {},
+      update: {
+        status: "PENDING",
+        comment: null
+      },
       create: {
         caProfileId: caProfile.id,
         status: "PENDING",
@@ -221,6 +226,11 @@ exports.uploadDocument = async (user, file, type, description) => {
   }
 
   // If profile still pending → save directly
+  await prisma.cAProfile.update({
+      where: { userId: user.userId },
+      data: { status: "PENDING"}  ,
+    });
+
   const document = await prisma.cADocument.create({
     data: {
       caProfileId: caProfile.id,
@@ -424,6 +434,10 @@ exports.deleteDocument = async (user, documentId) => {
     where: { userId: user.userId }
   });
 
+  if(caProfile.status === "SUSPENDED") {
+    throw new Error("Profile is suspended, cannot update");
+  }
+
   // ✅ If not approved → allow direct delete
   if (caProfile.status !== "APPROVED") {
 
@@ -439,7 +453,10 @@ exports.deleteDocument = async (user, documentId) => {
   // ✅ STEP 1: create/get pending FIRST
   const pending = await prisma.cAProfilePending.upsert({
     where: { caProfileId: caProfile.id },
-    update: {},
+    update: {
+        status: "PENDING",
+        comment: null
+    },
     create: {
       caProfileId: caProfile.id,
       status: "PENDING",

@@ -233,13 +233,16 @@ async function googleAuth(code, user_type_for_signup) {
     });
 
     if (user) {
+
+        const shouldUpdateRole = (user.role === "SME_USER" && role === "CA_USER");
+
         user = await prisma.user.update({
             where: { id: user.id },
             data: {
                 isEmailVerified: true,
                 googleId: sub,
                 authProvider: "GOOGLE",
-                ...(role && { role })
+                ...(shouldUpdateRole && { role })
             },
         });
     }

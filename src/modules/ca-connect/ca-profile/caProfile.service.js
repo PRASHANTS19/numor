@@ -101,15 +101,15 @@ exports.updateProfile = async (user, data) => {
     });
   }
 
-  if(profile.status === "SUSPENDED") {
+  if (profile.status === "SUSPENDED") {
     throw new Error("Profile is suspended, cannot update");
   }
 
   // if still pending
-  if (profile.status !== "APPROVED" ) {
+  if (profile.status !== "APPROVED") {
     return prisma.cAProfile.update({
       where: { userId: user.userId },
-      data: {...filteredData, status: "PENDING"}  ,
+      data: { ...filteredData, status: "PENDING" },
     });
   }
 
@@ -166,7 +166,7 @@ exports.uploadDocument = async (user, file, type, description) => {
   if (!caProfile) {
     throw new Error("CA profile not found");
   }
-  if(caProfile.status === "SUSPENDED") {
+  if (caProfile.status === "SUSPENDED") {
     throw new Error("Profile is suspended, cannot update");
   }
   const fileBuffer = file.buffer;
@@ -227,9 +227,9 @@ exports.uploadDocument = async (user, file, type, description) => {
 
   // If profile still pending → save directly
   await prisma.cAProfile.update({
-      where: { userId: user.userId },
-      data: { status: "PENDING"}  ,
-    });
+    where: { userId: user.userId },
+    data: { status: "PENDING" },
+  });
 
   const document = await prisma.cADocument.create({
     data: {
@@ -417,45 +417,90 @@ exports.getDocuments = async (user) => {
 
 exports.deleteDocument = async (user, documentId) => {
 
-  const document = await prisma.cADocument.findFirst({
-    where: {
-      id: BigInt(documentId),
-      caProfile: {
-        userId: BigInt(user.userId)
-      }
-    }
-  });
-
-  if (!document) {
-    throw new Error("Document not found or unauthorized");
-  }
+  const userId = BigInt(user.userId);
+  const docId = BigInt(documentId);
 
   const caProfile = await prisma.cAProfile.findUnique({
-    where: { userId: user.userId }
+    where: { userId }
   });
 
-  if(caProfile.status === "SUSPENDED") {
+  if (caProfile.status === "SUSPENDED") {
     throw new Error("Profile is suspended, cannot update");
   }
 
-  // ✅ If not approved → allow direct delete
-  if (caProfile.status !== "APPROVED") {
+  // 🔹 1. Try MAIN document
+  let document = await prisma.cADocument.findFirst({
+    where: {
+      id: docId,
+      caProfile: { userId }
+    }
+  });
 
+  // 🔹 2. If not found → check PENDING
+  let pendingDoc = null;
+
+  if (!document) {
+    pendingDoc = await prisma.cADocumentPending.findFirst({
+      where: { id: docId },
+      include: {
+        pendingProfile: {
+          include: {
+            caProfile: true
+          }
+        }
+      }
+    });
+
+    if (
+      !pendingDoc ||
+      pendingDoc.pendingProfile.caProfile.userId !== userId
+    ) {
+      throw new Error("Document not found or unauthorized");
+    }
+  }
+
+  // ✅ CASE A: Document exists ONLY in PENDING (ADD / DELETE)
+  if (pendingDoc) {
+
+    if (pendingDoc.operation === "ADD") {
+      // ✅ Just remove pending ADD
+      await prisma.cADocumentPending.delete({
+        where: { id: pendingDoc.id }
+      });
+
+      return {
+        message: "Pending document removed successfully"
+      };
+    }
+
+    if (pendingDoc.operation === "DELETE") {
+      throw new Error("Delete already requested");
+    }
+  }
+
+  // ✅ CASE B: NOT APPROVED → direct delete from MAIN
+  if (
+    caProfile.status === "PENDING" ||
+    caProfile.status === "UNDER_REVIEW"
+  ) {
     await storageService.remove(document.fileKey);
 
     await prisma.cADocument.delete({
       where: { id: document.id }
     });
+    await prisma.cAProfile.update({
+      where: { userId: user.userId },
+      data: { status: "PENDING" },
+    });
 
     return { message: "Document deleted successfully" };
   }
-
-  // ✅ STEP 1: create/get pending FIRST
+  // ✅ CASE C: APPROVED / REJECTED → pending flow
   const pending = await prisma.cAProfilePending.upsert({
     where: { caProfileId: caProfile.id },
     update: {
-        status: "PENDING",
-        comment: null
+      status: "PENDING",
+      comment: null
     },
     create: {
       caProfileId: caProfile.id,
@@ -464,20 +509,7 @@ exports.deleteDocument = async (user, documentId) => {
     }
   });
 
-  // ✅ STEP 2: check duplicate delete request
-  const existing = await prisma.cADocumentPending.findFirst({
-    where: {
-      pendingId: pending.id,
-      fileKey: document.fileKey,
-      operation: "DELETE"
-    }
-  });
-
-  if (existing) {
-    throw new Error("Delete already requested");
-  }
-
-  // ✅ STEP 3: create delete request
+  // 🔹 Create DELETE request
   await prisma.cADocumentPending.create({
     data: {
       pendingId: pending.id,
@@ -494,9 +526,6 @@ exports.deleteDocument = async (user, documentId) => {
     status: "PENDING"
   };
 };
-
-
-
 // exports.uploadCertificate = async (user, file) => {
 
 //   const caProfile = await prisma.cAProfile.findUnique({

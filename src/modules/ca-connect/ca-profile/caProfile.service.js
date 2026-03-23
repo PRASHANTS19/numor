@@ -278,7 +278,7 @@ exports.submitPendingProfile = async (user) => {
     }
 
     if (pendingProfile.status !== "PENDING") {
-      throw new Error("Profile already submitted for review");
+      throw new Error("Profile already submitted for review or is in rejected state");
     }
 
     return prisma.cAProfilePending.update({

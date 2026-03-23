@@ -101,11 +101,15 @@ exports.updateProfile = async (user, data) => {
     });
   }
 
+  if(profile.status === "SUSPENDED") {
+    throw new Error("Profile is suspended, cannot update");
+  }
+
   // if still pending
-  if (profile.status == "PENDING" && profile.status !== "APPROVED") {
+  if (profile.status !== "APPROVED" ) {
     return prisma.cAProfile.update({
       where: { userId: user.userId },
-      data: filteredData
+      data: {...filteredData, status: "PENDING"}  ,
     });
   }
 

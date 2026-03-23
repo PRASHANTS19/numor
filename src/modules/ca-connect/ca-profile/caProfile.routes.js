@@ -49,7 +49,7 @@ router.delete(
     role('CA_USER'),
     controller.deleteDocument);
 
-router.post(
+router.get(
   "/submit",
   authenticate,
   role('CA_USER'),

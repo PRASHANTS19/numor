@@ -416,7 +416,6 @@ exports.getDocuments = async (user) => {
 };
 
 exports.deleteDocument = async (user, documentId) => {
-
   const userId = BigInt(user.userId);
   const docId = BigInt(documentId);
 
@@ -500,12 +499,33 @@ exports.deleteDocument = async (user, documentId) => {
     await prisma.cADocument.delete({
       where: { id: document.id }
     });
+    await prisma.cAProfile.update({
+      where: { userId: user.userId },
+      data: { status: "PENDING" },
+    });
 
     return { message: "Document deleted successfully" };
   }
 
   // =========================================================
-  // ✅ CASE C: APPROVED / REJECTED → pending flow
+  // ✅ CASE C: REJECTED → Main flow
+  // =========================================================
+    if (caProfile.status === "REJECTED") {
+    await storageService.remove(document.fileKey);
+
+    await prisma.cADocument.delete({
+      where: { id: document.id }
+    });
+    await prisma.cAProfile.update({
+      where: { userId: user.userId },
+      data: { status: "PENDING" },
+    });
+
+    return { message: "Document deleted successfully and profile status updated to PENDING" };
+  }
+
+  // =========================================================
+  // ✅ CASE D: APPROVED → pending flow
   // =========================================================
 
   const pending = await prisma.cAProfilePending.upsert({

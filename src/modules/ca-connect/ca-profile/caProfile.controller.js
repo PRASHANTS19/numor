@@ -1,4 +1,4 @@
-const { ca } = require('zod/v4/locales');
+const { ca, fi } = require('zod/v4/locales');
 const caProfileService = require('./caProfile.service');
 
 exports.listCAs = async (req, res, next) => {
@@ -98,9 +98,10 @@ exports.getDocuments = async (req, res) => {
 
 exports.deleteDocument = async (req, res, next) => {
   try {
+    const { fileKey } = req.query;
     const result = await caProfileService.deleteDocument(
       req.user,
-      req.params.documentId
+      fileKey
     );
 
     res.json({

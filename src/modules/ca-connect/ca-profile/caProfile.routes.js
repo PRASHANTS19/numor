@@ -44,7 +44,7 @@ router.get(
 
 
 router.delete(
-    '/documents/:documentId',
+    '/documents',
     authenticate,
     role('CA_USER'),
     controller.deleteDocument);

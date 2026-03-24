@@ -405,7 +405,8 @@ exports.getDocuments = async (user) => {
         description: doc.description,
         mimeType: doc.mimeType,
         url,
-        source: doc.source
+        source: doc.source,
+        fileKey: doc.fileKey,
       };
     })
   );
@@ -415,160 +416,138 @@ exports.getDocuments = async (user) => {
   };
 };
 
-exports.deleteDocument = async (user, documentId) => {
+exports.deleteDocument = async (user, fileKey) => {
+
   const userId = BigInt(user.userId);
-  const docId = BigInt(documentId);
 
   const caProfile = await prisma.cAProfile.findUnique({
     where: { userId }
   });
 
+  if (!caProfile) {
+    throw new Error("CA profile not found");
+  }
+
   if (caProfile.status === "SUSPENDED") {
     throw new Error("Profile is suspended, cannot update");
   }
 
-  // 🔹 1. Try MAIN document
-  let document = await prisma.cADocument.findFirst({
-    where: {
-      id: docId,
-      caProfile: { userId }
-    }
-  });
+  // =========================================================
+  // ✅ CASE 1: APPROVED → Pending flow
+  // =========================================================
+  if (caProfile.status === "APPROVED") {
+    // 🔹 Step 1: get pending (NO mutation)
+    let pending = await prisma.cAProfilePending.findUnique({
+      where: { caProfileId: caProfile.id }
+    });
 
-  // 🔹 2. Try PENDING if not found
-  let pendingDoc = null;
-
-  if (!document) {
-    pendingDoc = await prisma.cADocumentPending.findFirst({
-      where: { id: docId },
-      include: {
-        pendingProfile: {
-          include: { caProfile: true }
+    // 🔹 Step 2: check existing operation
+    if (pending) {
+      const existingPendingDoc = await prisma.cADocumentPending.findFirst({
+        where: {
+          pendingId: pending.id,
+          fileKey
         }
+      });
+
+      if (existingPendingDoc) {
+        if (existingPendingDoc.operation === "DELETE") {
+          // ❌ No state change should happen
+          throw new Error("Delete already requested");
+        }
+        if (existingPendingDoc.operation === "ADD") {
+          await storageService.remove(fileKey);
+          await prisma.cADocumentPending.delete({
+            where: { id: existingPendingDoc.id }
+          });
+          await prisma.cAProfilePending.update({
+            where: { caProfileId: caProfile.id },
+            data: {
+              status: "PENDING",
+              comment: null
+            }
+          });
+          return {
+            message: "Pending document removed successfully"
+          };
+        }
+      }
+    }
+
+    // 🔹 Step 3: check main doc
+    const document = await prisma.cADocument.findFirst({
+      where: {
+        fileKey,
+        caProfileId: caProfile.id
       }
     });
 
-    if (
-      !pendingDoc ||
-      pendingDoc.pendingProfile.caProfile.userId !== userId
-    ) {
-      throw new Error("Document not found or unauthorized");
+    if (!document) {
+      throw new Error("Document not found");
     }
-  }
 
-  // =========================================================
-  // ✅ CASE A: Document exists in PENDING
-  // =========================================================
-  if (pendingDoc) {
-
-    if (pendingDoc.operation === "ADD") {
-
-      await storageService.remove(pendingDoc.fileKey);
-
-      await prisma.cADocumentPending.delete({
-        where: { id: pendingDoc.id }
-      });
-
-      await prisma.cAProfilePending.update({
-        where: { caProfileId: pendingDoc.pendingProfile.caProfile.id },
-        data: {
-          status: "PENDING",
-          comment: null
-        }
-      });
-
-      return {
-        message: "Pending document removed successfully"
-      };
-    } 
-
-    if (pendingDoc.operation === "DELETE") {
-      throw new Error("Delete already requested");
-    }
-  }
-
-  // =========================================================
-  // ✅ CASE B: NOT APPROVED → direct delete
-  // =========================================================
-  if (
-    caProfile.status === "PENDING" ||
-    caProfile.status === "UNDER_REVIEW" ||
-    caProfile.status === "REJECTED"
-  ) {
-    await storageService.remove(document.fileKey);
-
-    await prisma.cADocument.delete({
-      where: { id: document.id }
-    });
-    await prisma.cAProfile.update({
-      where: { userId: user.userId },
-      data: { status: "PENDING" },
+    // 🔹 Step 4: NOW create/update pending safely
+    pending = await prisma.cAProfilePending.upsert({
+      where: { caProfileId: caProfile.id },
+      update: {
+        status: "PENDING",
+        comment: null
+      },
+      create: {
+        caProfileId: caProfile.id,
+        status: "PENDING",
+        comment: null
+      }
     });
 
-    return { message: "Document deleted successfully" };
+    // 🔹 Step 5: create DELETE request
+    await prisma.cADocumentPending.create({
+      data: {
+        pendingId: pending.id,
+        type: document.type,
+        fileKey: document.fileKey,
+        mimeType: document.mimeType,
+        description: document.description,
+        operation: "DELETE"
+      }
+    });
+
+    return {
+      message: "Delete request submitted",
+      status: "PENDING"
+    };
   }
-
   // =========================================================
-  // ✅ CASE D: APPROVED → pending flow
+  // ✅ CASE 2: PENDING / UNDER_REVIEW / REJECTED → Direct delete from MAIN means CA profile is not approved yet, so we can directly delete the document without pending flow
   // =========================================================
 
-  const pending = await prisma.cAProfilePending.upsert({
-    where: { caProfileId: caProfile.id },
-    update: {
-      status: "PENDING",
-      comment: null
-    },
-    create: {
-      caProfileId: caProfile.id,
-      status: "PENDING",
-      comment: null
-    }
-  });
-
-  // 🔹 IMPORTANT: check existing operation
-  const existingPendingDoc = await prisma.cADocumentPending.findFirst({
+  // 🔹Delete from MAIN
+  const document = await prisma.cADocument.findFirst({
     where: {
-      pendingId: pending.id,
-      fileKey: document.fileKey
+      fileKey,
+      caProfileId: caProfile.id
     }
   });
 
-  if (existingPendingDoc) {
-
-    if (existingPendingDoc.operation === "DELETE") {
-      throw new Error("Delete already requested");
-    }
-
-    if (existingPendingDoc.operation === "ADD") {
-      await storageService.remove(existingPendingDoc.fileKey);
-
-      await prisma.cADocumentPending.delete({
-        where: { id: existingPendingDoc.id }
-      });
-
-      return {
-        message: "Pending document removed successfully"
-      };
-    }
+  if (!document) {
+    throw new Error("Document not found");
   }
 
-  // 🔹 Create DELETE request
-  await prisma.cADocumentPending.create({
-    data: {
-      pendingId: pending.id,
-      type: document.type,
-      fileKey: document.fileKey,
-      mimeType: document.mimeType,
-      description: document.description,
-      operation: "DELETE"
-    }
+  await storageService.remove(fileKey);
+
+  await prisma.cADocument.delete({
+    where: { id: document.id }
+  });
+  await prisma.cAProfile.update({
+    where: { userId: user.userId }
+    , data: { status: "PENDING", comment: null }
   });
 
   return {
-    message: "Delete request submitted, please submit profile for review",
-    status: "PENDING"
+    message: "Document deleted successfully"
   };
 };
+
 // exports.uploadCertificate = async (user, file) => {
 
 //   const caProfile = await prisma.cAProfile.findUnique({

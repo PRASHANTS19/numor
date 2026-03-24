@@ -271,7 +271,7 @@ model CADocument {
   id          BigInt         @id @default(autoincrement())
   caProfileId BigInt
   type        CADocumentType
-  fileKey     String
+  fileKey     String @unique
   createdAt   DateTime       @default(now())
   description String?
   mimeType    String?
@@ -357,7 +357,7 @@ model CADocumentPending {
   id          BigInt   @id @default(autoincrement())
   pendingId   BigInt
   type        CADocumentType
-  fileKey     String
+  fileKey     String  @unique
   mimeType    String?
   description String?
   operation   DocumentOperation @default(ADD)

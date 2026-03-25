@@ -284,3 +284,99 @@ exports.getProfileComparison = async (user, caId) => {
         pendingProfile: pendingProfile
     };
 };
+
+exports.getCAProfileCounts = async () => {
+    try {
+        const [
+            unverified,
+            underReview,
+            verified,
+            rejected,
+            suspended,
+            unverifiedUpdates,
+            updatesUnderReview,
+            updatesRejected,
+        ] = await Promise.all([
+            // 1. Unverified: status PENDING, no pending profile
+            prisma.cAProfile.count({
+                where: {
+                    status: 'PENDING',
+                    pendingProfile: null,
+                },
+            }),
+
+            // 2. Under Review: status UNDER_REVIEW, no pending profile
+            prisma.cAProfile.count({
+                where: {
+                    status: 'UNDER_REVIEW',
+                    pendingProfile: null,
+                },
+            }),
+
+            // 3. Verified: status APPROVED, no pending profile
+            prisma.cAProfile.count({
+                where: {
+                    status: 'APPROVED',
+                    pendingProfile: null,
+                },
+            }),
+
+            // 4. Rejected: status REJECTED, no pending profile
+            prisma.cAProfile.count({
+                where: {
+                    status: 'REJECTED',
+                    pendingProfile: null,
+                },
+            }),
+
+            // 5. Suspended
+            prisma.cAProfile.count({
+                where: {
+                    status: 'SUSPENDED',
+                },
+            }),
+
+            // 6. Unverified Updates: APPROVED + pending status PENDING
+            prisma.cAProfile.count({
+                where: {
+                    status: 'APPROVED',
+                    pendingProfile: { status: 'PENDING' },
+                },
+            }),
+
+            // 7. Updates Under Review: APPROVED + pending status UNDER_REVIEW
+            prisma.cAProfile.count({
+                where: {
+                    status: 'APPROVED',
+                    pendingProfile: { status: 'UNDER_REVIEW' },
+                },
+            }),
+
+            // 8. Updates Rejected: APPROVED + pending status REJECTED
+            prisma.cAProfile.count({
+                where: {
+                    status: 'APPROVED',
+                    pendingProfile: { status: 'REJECTED' },
+                },
+            }),
+        ]);
+
+         return {
+                unverified,
+                underReview,
+                verified,
+                rejected,
+                suspended,
+                unverifiedUpdates,
+                updatesUnderReview,
+                updatesRejected,
+                // Aggregated counts for main tabs
+                pendingReview: underReview + updatesUnderReview,
+                allRejected: rejected + updatesRejected,
+                total:  unverified + underReview + verified + rejected + suspended + unverifiedUpdates + updatesUnderReview + updatesRejected,
+            }
+    } catch (error) {
+        console.error('Error fetching CA profile counts:', error);
+        res.status(500).json({ success: false, message: 'Failed to fetch counts' });
+    }
+}

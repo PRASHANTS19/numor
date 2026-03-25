@@ -151,3 +151,15 @@ exports.getProfileComparison = async (req, res, next) => {
     next(error);
   }
 };
+
+exports.getCAProfileCounts = async (req, res, next) => {
+  try {
+    const counts = await adminService.getCAProfileCounts();
+    res.status(200).json({
+      success: true,
+      data: counts
+    });
+  } catch (err) {
+    next(err);
+  }
+}

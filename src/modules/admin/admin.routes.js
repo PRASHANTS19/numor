@@ -83,4 +83,12 @@ router.get(
   controller.getProfileComparison
 );
 
+
+router.get(
+  "/ca-profiles/counts",
+  authenticate,
+  role('ADMIN'),
+  controller.getCAProfileCounts
+)
+
 module.exports = router;

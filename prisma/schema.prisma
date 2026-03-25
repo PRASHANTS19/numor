@@ -262,7 +262,7 @@ model CAProfile {
   reviews         CAReview[]
   slots           CASlot[]
 
-  pendingProfiles CAProfilePending[]
+  pendingProfile CAProfilePending? @relation("CAProfileToPending")
 
   @@map("ca_profiles")
 }
@@ -347,7 +347,7 @@ model CAProfilePending {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
-  caProfile       CAProfile @relation(fields: [caProfileId], references: [id])
+  caProfile       CAProfile @relation("CAProfileToPending", fields: [caProfileId], references: [id], onDelete: Cascade)
   documents       CADocumentPending[]
 
   @@map("ca_profiles_pending")

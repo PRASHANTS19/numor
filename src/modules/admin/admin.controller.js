@@ -163,3 +163,17 @@ exports.getCAProfileCounts = async (req, res, next) => {
     next(err);
   }
 }
+
+exports.listCAProfiles = async (req, res, next) => {
+  try {
+    const { tab = 'underReview', page = 1, limit = 20 } = req.query;
+    const result = await adminService.listCAProfiles(tab, page, limit);
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  }
+    catch (err) {
+    next(err);
+  }
+}

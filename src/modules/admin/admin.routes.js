@@ -91,4 +91,11 @@ router.get(
   controller.getCAProfileCounts
 )
 
+router.get(
+  "/ca-profiles",
+  authenticate,
+  role('ADMIN'),
+  controller.listCAProfiles
+)
+
 module.exports = router;

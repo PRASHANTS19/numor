@@ -380,3 +380,65 @@ exports.getCAProfileCounts = async () => {
         res.status(500).json({ success: false, message: 'Failed to fetch counts' });
     }
 }
+
+exports.listCAProfiles = async (tab, page, limit) => {
+    const skip = (page - 1) * limit;
+    const take = Number(limit);
+
+    const whereClause = getWhereClause(tab);
+    if (!whereClause) return res.status(400).json({ success: false, error: 'Invalid tab' });
+
+    const includeClause = getIncludeClause(tab);
+    const selectClause = getSelectClause(tab);
+
+    const [profiles, total] = await Promise.all([
+        prisma.cAProfile.findMany({
+            where: whereClause, skip, take,
+            ...(selectClause ? { select: selectClause } : { include: includeClause }),
+            orderBy: { updatedAt: 'desc' },
+        }),
+        prisma.cAProfile.count({ where: whereClause }),
+    ]);
+
+    return {
+        profiles,
+        total,
+        page: Number(page),
+        limit: take,
+        totalPages: Math.ceil(total / take)
+    };
+}
+
+
+function getWhereClause(tab) {
+  switch (tab) {
+    case 'unverified':         return { status: 'PENDING', pendingProfile: null };
+    case 'underReview':        return { status: 'UNDER_REVIEW', pendingProfile: null };
+    case 'verified':           return { status: 'APPROVED', pendingProfile: null };
+    case 'rejected':           return { status: 'REJECTED', pendingProfile: null };
+    case 'suspended':          return { status: 'SUSPENDED' };
+    case 'unverifiedUpdates':  return { status: 'APPROVED', pendingProfile: { status: 'PENDING' } };
+    case 'updatesUnderReview': return { status: 'APPROVED', pendingProfile: { status: 'UNDER_REVIEW' } };
+    case 'updatesRejected':    return { status: 'APPROVED', pendingProfile: { status: 'REJECTED' } };
+    default: return null;
+  }
+}
+
+function getIncludeClause(tab) {
+  const base = { user: { select: { name: true, email: true, phone: true } },
+                 documents: true };
+  if (['updatesUnderReview', 'updatesRejected', 'unverifiedUpdates'].includes(tab)) {
+    return { ...base, pendingProfile: { include: { documents: true } } };
+  }
+  return base;
+}
+
+function getSelectClause(tab) {
+  if (tab === 'unverified') {
+    return {
+      id: true, createdAt: true,
+      user: { select: { name: true, email: true, phone: true } },
+    };
+  }
+  return null;
+}

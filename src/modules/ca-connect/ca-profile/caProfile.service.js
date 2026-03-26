@@ -27,7 +27,7 @@ exports.getByUserId = async (user) => {
   const profile = await prisma.cAProfile.findUnique({
     where: { userId: user.userId },
     include: {
-      pendingProfiles: true
+      pendingProfile: true
     }
   });
 
@@ -35,7 +35,7 @@ exports.getByUserId = async (user) => {
     throw new Error("CA profile not found");
   }
 
-  const pending = profile.pendingProfiles?.[0] || null;
+  const pending = profile.pendingProfile || null;
 
   let pendingChanges = null;
 
@@ -58,7 +58,7 @@ exports.getByUserId = async (user) => {
     };
   }
 
-  const { pendingProfiles, ...approvedProfile } = profile;
+  const { pendingProfile, ...approvedProfile } = profile;
 
   return {
     currentProfile: approvedProfile,
@@ -319,7 +319,7 @@ exports.getDocuments = async (user) => {
     where: { userId: user.userId },
     include: {
       documents: true,
-      pendingProfiles: {
+      pendingProfile: {
         include: {
           documents: true
         }
@@ -331,7 +331,7 @@ exports.getDocuments = async (user) => {
     throw new Error("CA profile not found");
   }
 
-  const pending = caProfile.pendingProfiles?.[0] || null;
+  const pending = caProfile.pendingProfile || null;
 
   // Step 1: Group base documents by type (array)
   const docMap = new Map();
@@ -352,7 +352,7 @@ exports.getDocuments = async (user) => {
   }
 
   // Step 2: Apply pending operations
-  if (pending) {
+  if (pending && pending.documents?.length) {
     for (const pDoc of pending.documents) {
       const key = pDoc.type;
 

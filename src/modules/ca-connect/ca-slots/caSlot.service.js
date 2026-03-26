@@ -11,6 +11,9 @@ exports.createOrUpdateSlots = async (user, payload) => {
     if (!caProfile) {
         throw new Error("CA profile not found");
     }
+    if (caProfile.status  !== 'APPROVED') {
+        throw new Error("CA profile is not approved");
+    }
 
     const allSlots = [];
 
@@ -18,7 +21,7 @@ exports.createOrUpdateSlots = async (user, payload) => {
 
         for (const slot of daySlots) {
             const { startTime, endTime, duration, buffer, typeOfCall } = slot;
-
+            // dayjs cannot properly work with time-only values like "10:00" so we make dummy date "2000-01-01" and append time to it and later ignore date part when saving to DB
             let current = dayjs(`2000-01-01 ${startTime}`);
             const end = dayjs(`2000-01-01 ${endTime}`);
 

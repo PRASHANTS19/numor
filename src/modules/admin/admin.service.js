@@ -399,6 +399,38 @@ exports.listCAProfiles = async (tab, page, limit) => {
         }),
         prisma.cAProfile.count({ where: whereClause }),
     ]);
+    
+    // Collect all fileKeys from documents
+    const fileKeysMap = new Map(); // Map to track fileKey -> document objects
+    const fileKeys = [];
+    
+    profiles.forEach(profile => {
+        if (profile.documents && Array.isArray(profile.documents)) {
+            profile.documents.forEach(doc => {
+                if (doc.fileKey && !fileKeysMap.has(doc.fileKey)) {
+                    fileKeys.push(doc.fileKey);
+                    fileKeysMap.set(doc.fileKey, []);
+                }
+                fileKeysMap.get(doc.fileKey).push(doc);
+            });
+        }
+    });
+
+    // Get signed URLs for all fileKeys
+    if (fileKeys.length > 0) {
+        const signedUrlsMap = await storageService.getSignedUrls(fileKeys);
+
+        // Append signedUrl to each document
+        profiles.forEach(profile => {
+            if (profile.documents && Array.isArray(profile.documents)) {
+                profile.documents.forEach(doc => {
+                    if (doc.fileKey && signedUrlsMap[doc.fileKey]) {
+                        doc.signedUrl = signedUrlsMap[doc.fileKey];
+                    }
+                });
+            }
+        });
+    }
 
     return {
         profiles,

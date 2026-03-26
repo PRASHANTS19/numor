@@ -34,6 +34,21 @@ async function getSignedUrl(key) {
   return data.signedUrl;
 }
 
+async function getSignedUrls(keys) {
+  const { data, error } = await supabase.storage
+    .from(bucket)
+    .createSignedUrls(keys, 900, {
+      download: true
+    });
+
+  if (error) throw error;
+
+  return data.reduce((acc, item) => {
+    acc[item.path] = item.signedUrl;
+    return acc;
+  }, {});
+}
+
 async function remove(key) {
   const { data, error } = await supabase.storage
     .from(bucket)
@@ -47,5 +62,6 @@ async function remove(key) {
 module.exports = {
   upload,
   getSignedUrl,
+  getSignedUrls,
   remove
 };

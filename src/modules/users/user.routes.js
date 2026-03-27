@@ -6,6 +6,7 @@ const CAcontroller = require('../ca-connect/ca-profile/caProfile.controller');
 const controller = require('./user.controller');
 const validator = require('./user.validator');
 const { caUpload } = require('../../config/upload');
+const CAslotcontroller = require('../ca-connect/ca-slots/caSlot.controller');
 
 
 router.use(auth);
@@ -44,7 +45,18 @@ router.delete(
 );
 
 router.get(
-    '/',
+    '/listCAs',
     CAcontroller.listCAs);
+
+// Get slots for users
+router.get(
+    '/caslots/:caProfileId',
+    CAslotcontroller.getSlots
+);
+
+router.post(
+    '/bookCA',
+    CAslotcontroller.createBooking
+);
 
 module.exports = router;

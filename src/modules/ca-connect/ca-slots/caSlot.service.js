@@ -1,7 +1,7 @@
 const prisma = require('../../../config/database');
 const dayjs = require('dayjs');
-const isSameOrBefore = require('dayjs/plugin/isSameOrBefore');
-const isSameOrAfter = require("dayjs/plugin/isSameOrAfter");
+const customParseFormat = require("dayjs/plugin/customParseFormat");
+const { ca } = require('zod/v4/locales');
 
 exports.createOrUpdateSlots = async (user, payload) => {
     const caProfile = await prisma.cAProfile.findUnique({
@@ -11,7 +11,7 @@ exports.createOrUpdateSlots = async (user, payload) => {
     if (!caProfile) {
         throw new Error("CA profile not found");
     }
-    if (caProfile.status  !== 'APPROVED') {
+    if (caProfile.status !== 'APPROVED') {
         throw new Error("CA profile is not approved");
     }
 
@@ -72,41 +72,190 @@ const dayOrder = {
     SUNDAY: 7
 };
 
-exports.getSlots = async (user) => {
-    const caProfile = await prisma.cAProfile.findUnique({
-        where: { userId: user.userId }
+exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
+
+    const start = dayjs(startDate);
+    const end = dayjs(endDate);
+
+    const result = {};
+
+    // 👉 Step 1: Fetch all slots once
+    const allSlots = await prisma.cASlot.findMany({
+        where: {
+            caProfileId: BigInt(caProfileId)
+        }
     });
 
-    if (!caProfile) {
-        throw new Error("CA profile not found");
+    // 👉 Step 2: Fetch bookings in range and to avoid Double booking risk we added OR code
+    const bookings = await prisma.cABooking.findMany({
+        where: {
+            caProfileId: BigInt(caProfileId),
+            bookingDate: {
+                gte: start.startOf("day").toDate(),
+                lte: end.endOf("day").toDate()
+            },
+            OR: [
+                { status: "CONFIRMED" },
+                {
+                    status: "INITIATED",
+                    expiresAt: { gt: new Date() }
+                }
+            ]
+        },
+        select: {
+            slotId: true,
+            bookingDate: true
+        }
+    });
+
+    // 👉 Step 3: Group bookings by date
+    const bookingMap = {};
+
+    for (const booking of bookings) {
+        const dateKey = dayjs(booking.bookingDate).format("YYYY-MM-DD");
+        if (!bookingMap[dateKey]) {
+            bookingMap[dateKey] = new Set();
+        }
+
+        bookingMap[dateKey].add(booking.slotId.toString());
     }
 
-    const slots = await prisma.cASlot.findMany({
-        where: { caProfileId: caProfile.id }
-    });
+    // 👉 Step 4: Loop through each day
+    let current = start.clone();
+    while (current.isBefore(end) || current.isSame(end)) {
 
-    slots.sort((a, b) => {
-        if (dayOrder[a.day] !== dayOrder[b.day]) {
-            return dayOrder[a.day] - dayOrder[b.day];
-        }
-        return a.startTime.localeCompare(b.startTime);
-    });
-    return slots;
+        const dateKey = current.format("YYYY-MM-DD");
+
+        // ✅ Format: MONDAY 26-03-2026
+        const formattedKey = `${current.format("dddd").toUpperCase()} ${current.format("DD-MM-YYYY")}`;
+
+        const day = current.format("dddd").toUpperCase();
+
+        // filter slots for that weekday
+        const slotsForDay = allSlots.filter(s => s.day === day);
+
+        const blockedIds = bookingMap[dateKey] || new Set();
+
+        const availableSlots = slotsForDay
+            .filter(slot => !blockedIds.has(slot.id.toString()))
+            .sort((a, b) => a.startTime.localeCompare(b.startTime))
+            .map(slot => ({
+                id: slot.id,
+                startTime: slot.startTime,
+                endTime: slot.endTime,
+                typeOfCall: slot.typeOfCall
+            }));
+
+        // ✅ flat structure
+        result[formattedKey] = availableSlots;
+
+        current = current.add(1, "day");
+    }
+
+    return result;
 };
 
-exports.blockSlot = async (slotId, caProfileId) => {
-    const slot = await prisma.cASlot.findFirst({
-        where: {
-            id: BigInt(slotId),
-            caProfileId,
-            status: 'AVAILABLE'
+dayjs.extend(customParseFormat);
+exports.createBooking = async (user, payload) => {
+    const { caProfileId, slotId, bookingDate, consultationMode } = payload;
+
+    const expiryMinutes = 5;
+    const parsedDate = dayjs(bookingDate, "DD-MM-YYYY", true);
+
+    if (!parsedDate.isValid()) {
+        throw new Error("Invalid bookingDate format. Expected DD-MM-YYYY");
+    }
+
+    if (parsedDate.isBefore(dayjs(), "day")) {
+        throw new Error("Cannot book past dates");
+    }
+
+    const normalizedDate = parsedDate.format("YYYY-MM-DD");
+    const normalizedDateObj = parsedDate.startOf("day").toDate();
+    return await prisma.$transaction(async (tx) => {
+
+        const slot = await tx.cASlot.findUnique({
+            where: { id: BigInt(slotId) }
+        });
+
+        if (!slot) {
+            throw new Error("Slot not found");
         }
-    });
 
-    if (!slot) throw new Error('Slot not available');
+        const caProfile = await tx.cAProfile.findUnique({
+            where: { id: BigInt(caProfileId) }
+        });
 
-    await prisma.cASlot.update({
-        where: { id: BigInt(slotId) },
-        data: { status: 'BOOKED' }
+        if (!caProfile) {
+            throw new Error("CA profile not found");
+        }
+
+        // Clean expired holds
+        await tx.cABooking.updateMany({
+            where: {
+                slotId: BigInt(slotId),
+                bookingDate: normalizedDateObj,
+                status: "INITIATED",
+                expiresAt: { lt: new Date() }
+            },
+            data: { status: "EXPIRED" }
+        });
+
+        const existingBooking = await tx.cABooking.findFirst({
+            where: {
+                slotId: BigInt(slotId),
+                bookingDate: normalizedDateObj,
+                OR: [
+                    { status: "CONFIRMED" },
+                    {
+                        status: "INITIATED",
+                        expiresAt: { gt: new Date() }
+                    }
+                ]
+            }
+        });
+
+        if (existingBooking) {
+            throw new Error("Slot already booked or temporarily blocked");
+        }
+
+        const start = dayjs(`2000-01-01 ${slot.startTime}`);
+        const end = dayjs(`2000-01-01 ${slot.endTime}`);
+        const durationMinutes = end.diff(start, "minute");
+
+        if (durationMinutes <= 0) {
+            throw new Error("Invalid slot duration");
+        }
+
+        const baseAmount = (caProfile.hourlyFee / 60) * durationMinutes;
+        const taxPercent = caProfile.taxPercent || 0;
+        const amount = Number(baseAmount.toFixed(2));
+
+        try {
+            const booking = await tx.cABooking.create({
+                data: {
+                    bookingCode: `BOOK-${crypto.randomUUID()}`,
+                    userId: BigInt(user.userId),
+                    caProfileId: BigInt(caProfileId),
+                    slotId: BigInt(slotId),
+                    bookingDate: normalizedDateObj,
+                    startTime: slot.startTime,
+                    endTime: slot.endTime,
+                    consultationMode,
+                    durationMinutes,
+                    amount,
+                    taxPercent,
+                    status: "INITIATED",
+                    expiresAt: dayjs().add(expiryMinutes, "minute").toDate()
+                }
+            });
+
+            return booking;
+        } catch (error) {
+            if (error.code === "P2002") {
+                throw new Error("Slot already booked");
+            }
+            throw error;
+        }
     });
 };

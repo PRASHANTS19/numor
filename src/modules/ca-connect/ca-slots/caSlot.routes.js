@@ -11,18 +11,4 @@ router.post(
     controller.createSlots
 );
 
-// Get slots for users
-router.get(
-    '/slots',
-    authenticate,
-    controller.getSlots
-);
-
-// CA blocks a slot
-router.patch(
-    '/:slotId/block',
-    authenticate,
-    controller.blockSlot
-);
-
 module.exports = router;

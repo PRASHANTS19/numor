@@ -236,6 +236,7 @@ model CAProfile {
   registrationNo  String?        @unique
   experienceYears Int?
   hourlyFee       Decimal?       @db.Decimal(10, 2)
+  taxPercent      Decimal?       @db.Decimal(10, 2)
   bio             String?
   languages       String[]
   specializations String[]
@@ -283,12 +284,15 @@ model CADocument {
 model CABooking {
   id               BigInt @id @default(autoincrement())
   bookingCode      String @unique
+
   userId           BigInt
   caProfileId      BigInt
   slotId           BigInt   
 
-  date             DateTime 
-  scheduledAt      DateTime
+  bookingDate      DateTime  @db.Date  // ✅ only date (normalized)
+  
+  startTime        String     // ✅ snapshot from slot
+  endTime          String     // ✅ snapshot from slot
 
   consultationMode ConsultationMode
   durationMinutes  Int @default(60)
@@ -297,26 +301,25 @@ model CABooking {
   meetingProvider  String?
 
   amount           Decimal @db.Decimal(15, 2)
-  tax              Decimal @db.Decimal(15, 2)
+  taxPercent       Decimal @db.Decimal(15, 2)
   currency         String @default("INR")
 
   status           BookingStatus @default(INITIATED)
-
+  expiresAt DateTime? //temporarily block the slot for this user
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
   caProfile        CAProfile @relation(fields: [caProfileId], references: [id])
   user             User @relation(fields: [userId], references: [id])
-  slot             CASlot @relation(fields: [slotId], references: [id]) // ✅ correct
+  slot             CASlot @relation(fields: [slotId], references: [id])
 
   payment          CAPayment?
   review           CAReview?
 
-  @@unique([slotId, date])
   @@index([userId])
   @@index([caProfileId])
-  @@index([slotId, date]) 
-  @@map("ca_bookings")
+  @@unique([slotId, bookingDate]) 
+ @@map("ca_bookings")
 }
 
 model CAProfilePending {
@@ -549,6 +552,7 @@ enum BookingStatus {
   CANCELLED
   COMPLETED
   NO_SHOW
+  EXPIRED
 }
 
 enum PaymentStatus {

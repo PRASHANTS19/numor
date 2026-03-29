@@ -273,3 +273,71 @@ exports.createBooking = async (user, payload) => {
         }
     });
 };
+
+exports.listCABookings = async (CA) => {
+  const caProfile = await prisma.cAProfile.findUnique({
+    where: { userId: CA.userId }
+  });
+
+  if (!caProfile) {
+    throw new Error('CA profile not found');
+  }
+
+  return prisma.cABooking.findMany({
+    where: { caProfileId: caProfile.id },
+    orderBy: { bookingDate: 'desc' },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true }
+      },
+      payment: true,
+      review: true
+    }
+  });
+};
+
+exports.listUserBookings = async (user) => {
+  return prisma.cABooking.findMany({
+    where: { userId: user.userId },
+    orderBy: { bookingDate: 'desc' },
+    include: {
+      caProfile: {
+        select: {
+          id: true,
+          hourlyFee: true,
+          user: {
+            select: { name: true }
+          }
+        }
+      },
+      payment: true,
+      review: true
+    }
+  });
+};
+
+exports.getByBookingCode = async (bookingCode, user) => {
+  const booking = await prisma.cABooking.findUnique({
+    where: { bookingCode },
+    include: {
+      caProfile: {
+        include: {
+          user: {
+            select: { id: true, name: true, email: true }
+          }
+        }
+      },
+      user: {
+        select: { id: true, name: true, email: true }
+      },
+      payment: true,
+      review: true
+    }
+  });
+
+  if (!booking) {
+    throw new Error('Booking not found');
+  }
+  return booking;
+};
+

@@ -1,12 +1,12 @@
 const router = require('express').Router();
 const auth = require('../../middlewares/auth.middleware');
-const allowRoles = require('../../middlewares/role.middleware');
+const role = require('../../middlewares/role.middleware');
 const validate = require('../../middlewares/validate.middleware');
 const CAcontroller = require('../ca-connect/ca-profile/caProfile.controller');
 const controller = require('./user.controller');
 const validator = require('./user.validator');
 const { caUpload } = require('../../config/upload');
-const CAslotcontroller = require('../ca-connect/ca-slots/caSlot.controller');
+const CAslotcontroller = require('../ca-connect/ca-slots-and-bookings/caSlot.controller');
 
 
 router.use(auth);
@@ -28,6 +28,7 @@ router.put('/update', validate(validator.updateUserSchema), controller.updateUse
 
 router.post(
     '/profilePhoto',
+    role('SME_USER'),
     caUpload.single("file"),
     controller.uploadProfilePhoto
 );
@@ -35,28 +36,45 @@ router.post(
 
 router.get(
     '/profilePhoto',
+    role('SME_USER'),
     controller.getProfilePhoto
 );
 
 
 router.delete(
     '/profilePhoto',
+    role('SME_USER'),
     controller.deleteProfilePhoto
 );
 
 router.get(
     '/listCAs',
+    role('SME_USER'),
     CAcontroller.listCAs);
 
 // Get slots for users
 router.get(
     '/caslots/:caProfileId',
+    role('SME_USER'),
     CAslotcontroller.getSlots
 );
 
 router.post(
     '/bookCA',
+    role('SME_USER'),
     CAslotcontroller.createBooking
+);
+
+router.get(
+  '/bookings',
+  role('SME_USER'),
+  CAslotcontroller.listMyBookings
+);
+
+router.get(
+  '/:bookingCode',
+  role('SME_USER'),
+  CAslotcontroller.getBookingByCode
 );
 
 module.exports = router;

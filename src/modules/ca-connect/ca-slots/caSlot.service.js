@@ -74,8 +74,12 @@ const dayOrder = {
 
 exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
 
-    const start = dayjs(startDate);
-    const end = dayjs(endDate);
+    const start = dayjs(startDate, "YYYY-MM-DD", true);
+    const end = dayjs(endDate, "YYYY-MM-DD", true);
+
+    if (!start.isValid() || !end.isValid()) {
+        throw new Error("Invalid date format. Expected YYYY-MM-DD");
+    }
 
     const result = {};
 
@@ -86,13 +90,24 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
         }
     });
 
+//   -----------------------------------------------------------------------------------------
+    // cleaning expired bookings here to ensure that we don't show blocked slots as unavailable
+//   ------------------------------------------------------------------------------------------
+    // await prisma.cABooking.updateMany({
+    //     where: {
+    //         status: "INITIATED",
+    //         expiresAt: { lt: new Date() }
+    //     },
+    //     data: { status: "EXPIRED" }
+    // });
+
     // 👉 Step 2: Fetch bookings in range and to avoid Double booking risk we added OR code
     const bookings = await prisma.cABooking.findMany({
         where: {
             caProfileId: BigInt(caProfileId),
             bookingDate: {
-                gte: start.startOf("day").toDate(),
-                lte: end.endOf("day").toDate()
+                gte: new Date(start.format("YYYY-MM-DD")),
+                lte: new Date(end.format("YYYY-MM-DD"))
             },
             OR: [
                 { status: "CONFIRMED" },
@@ -107,7 +122,7 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
             bookingDate: true
         }
     });
-
+    // console.log("Fetched bookings:", bookings);
     // 👉 Step 3: Group bookings by date
     const bookingMap = {};
 
@@ -170,8 +185,7 @@ exports.createBooking = async (user, payload) => {
         throw new Error("Cannot book past dates");
     }
 
-    const normalizedDate = parsedDate.format("YYYY-MM-DD");
-    const normalizedDateObj = parsedDate.startOf("day").toDate();
+    const normalizedDateObj = new Date(parsedDate.format("YYYY-MM-DD"));
     return await prisma.$transaction(async (tx) => {
 
         const slot = await tx.cASlot.findUnique({

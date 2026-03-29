@@ -12,10 +12,9 @@ const clientRoutes = require('../modules/clients/client.routes');
 // const aiRoutes = require('../modules/ai/ai.routes');
 
 const caProfile = require('../modules/ca-connect/ca-profile/caProfile.routes');
-const caBooking = require('../modules/ca-connect/ca-booking/caBooking.routes');
 const caReview = require('../modules/ca-connect/ca-review/caReview.routes');
 // const caAdmin = require('../modules/ca-connect/admin/caAdmin.routes');
-const caSlots = require('../modules/ca-connect/ca-slots/caSlot.routes');
+const caSlots = require('../modules/ca-connect/ca-slots-and-bookings/caSlot.routes');
 const chatBot = require("../modules/ai/chatbot/chat.route");
 const qstashRoute = require("../workers/qstash.route");
 const adminRoutes = require("../modules/admin/admin.routes");
@@ -37,7 +36,6 @@ router.use('/clients', clientRoutes);
 
 // CA Connect routes
 router.use('/ca-profile', caProfile);
-router.use('/ca-bookings', caBooking);
 router.use('/ca-reviews', caReview);
 // router.use('/ca/admin', caAdmin);
 router.use('/ca-slots', caSlots);

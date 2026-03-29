@@ -6,7 +6,7 @@ const CAcontroller = require('../ca-connect/ca-profile/caProfile.controller');
 const controller = require('./user.controller');
 const validator = require('./user.validator');
 const { caUpload } = require('../../config/upload');
-const CAslotcontroller = require('../ca-connect/ca-slots/caSlot.controller');
+const CAslotcontroller = require('../ca-connect/ca-slots-and-bookings/caSlot.controller');
 
 
 router.use(auth);

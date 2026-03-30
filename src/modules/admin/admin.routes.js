@@ -5,7 +5,7 @@ const controller = require('./admin.controller');
 
 
 router.post(
-    "/ca/:caProfileId/approveUpdate",
+    "/ca/caprofile/:caProfileId/approveUpdate",
     authenticate,
     role('ADMIN'),
     controller.approveCAProfileUpdate

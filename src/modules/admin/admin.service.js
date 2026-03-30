@@ -433,7 +433,7 @@ exports.listCAProfiles = async (tab, page, limit) => {
     }
 
     return {
-        profiles,
+        profiles: profiles.map(removeNullFromPendingProfile),
         total,
         page: Number(page),
         limit: take,
@@ -441,6 +441,20 @@ exports.listCAProfiles = async (tab, page, limit) => {
     };
 }
 
+function removeNullFromPendingProfile(profile) {
+    if (!profile.pendingProfile) return profile;
+    
+    return {
+        ...profile,
+        pendingProfile: Object.fromEntries(
+            Object.entries(profile.pendingProfile).filter(([_, value]) => {
+                if (value === null || value === undefined) return false;
+                if (Array.isArray(value) && value.length === 0) return false;
+                return true;
+            })
+        )
+    };
+}
 
 function getWhereClause(tab) {
   switch (tab) {

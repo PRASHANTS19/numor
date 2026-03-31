@@ -221,8 +221,8 @@ exports.approveCAProfile = async (caId, adminId) => {
         throw new Error("CA profile not found");
     }
 
-    if (profile.status !== "UNDER_REVIEW") {
-        throw new Error("Profile is not under review");
+    if (profile.status !== "UNDER_REVIEW" && profile.status !== "SUSPENDED") {
+        throw new Error("Only profiles under review or suspended states can be approved. Current status: " + profile.status);
     }
 
     return prisma.cAProfile.update({

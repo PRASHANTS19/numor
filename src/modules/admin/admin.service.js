@@ -403,7 +403,7 @@ exports.listCAProfiles = async (tab, page, limit) => {
     // Collect all fileKeys from documents
     const fileKeysMap = new Map(); // Map to track fileKey -> document objects
     const fileKeys = [];
-    
+
     profiles.forEach(profile => {
         if (profile.documents && Array.isArray(profile.documents)) {
             profile.documents.forEach(doc => {
@@ -416,14 +416,38 @@ exports.listCAProfiles = async (tab, page, limit) => {
         }
     });
 
+    //Collect fileKeys from pending profiles if applicable
+    const pendingFileKeys = [];
+    profiles.forEach(profile => {
+        if (profile.pendingProfile && profile.pendingProfile.documents && Array.isArray(profile.pendingProfile.documents)) {
+            profile.pendingProfile.documents.forEach(doc => {
+                if (doc.fileKey && !fileKeysMap.has(doc.fileKey)) {
+                    pendingFileKeys.push(doc.fileKey);
+                    fileKeysMap.set(doc.fileKey, []);
+                }
+                fileKeysMap.get(doc.fileKey).push(doc);
+            });
+        }
+    });
+
     // Get signed URLs for all fileKeys
-    if (fileKeys.length > 0) {
-        const signedUrlsMap = await storageService.getSignedUrls(fileKeys);
+    if (fileKeys.length > 0 || pendingFileKeys.length > 0) {
+        const allFileKeys = [...fileKeys, ...pendingFileKeys];
+        const signedUrlsMap = await storageService.getSignedUrls(allFileKeys);
 
         // Append signedUrl to each document
         profiles.forEach(profile => {
             if (profile.documents && Array.isArray(profile.documents)) {
                 profile.documents.forEach(doc => {
+                    if (doc.fileKey && signedUrlsMap[doc.fileKey]) {
+                        doc.signedUrl = signedUrlsMap[doc.fileKey];
+                    }
+                });
+            }
+        });
+        profiles.forEach(profile => {
+            if (profile.pendingProfile && profile.pendingProfile.documents && Array.isArray(profile.pendingProfile.documents)) {
+                profile.pendingProfile.documents.forEach(doc => {
                     if (doc.fileKey && signedUrlsMap[doc.fileKey]) {
                         doc.signedUrl = signedUrlsMap[doc.fileKey];
                     }

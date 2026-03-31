@@ -177,3 +177,17 @@ exports.listCAProfiles = async (req, res, next) => {
     next(err);
   }
 }
+
+exports.suspendCAProfile = async (req, res, next) => {
+  try {
+    const { caProfileId } = req.params;
+    const { comment } = req.body;
+    const result = await adminService.suspendCAProfile(caProfileId, comment);
+    res.status(200).json({
+      success: true,
+      message: "CA profile suspended successfully"
+    });
+  } catch (err) {
+    next(err);
+  }
+}

@@ -98,4 +98,11 @@ router.get(
   controller.listCAProfiles
 )
 
+router.post(
+  "/ca/caprofile/:caProfileId/suspend",
+  authenticate,
+  role('ADMIN'),
+  controller.suspendCAProfile
+);
+
 module.exports = router;

@@ -441,6 +441,14 @@ exports.listCAProfiles = async (tab, page, limit) => {
     };
 }
 
+exports.suspendCAProfile = async (caProfileId, comment) => {
+    return prisma.cAProfile.update({
+        where: { id: caProfileId },
+        data: { status: 'SUSPENDED', comment: comment || "Profile suspended by admin" }
+    });
+};
+
+
 function removeNullFromPendingProfile(profile) {
     if (!profile.pendingProfile) return profile;
     

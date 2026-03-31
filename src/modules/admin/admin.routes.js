@@ -12,7 +12,7 @@ router.post(
 );
 
 router.post(
-    "/ca/:caProfileId/rejectUpdate",
+    "/ca/caprofile/:caProfileId/rejectUpdate",
     authenticate,
     role('ADMIN'),
     controller.rejectCAProfileUpdate

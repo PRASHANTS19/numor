@@ -73,6 +73,27 @@ const dayOrder = {
     SUNDAY: 7
 };
 
+exports.resolveCaProfileIdForSlots = async (user, requestedCaProfileId) => {
+    if (requestedCaProfileId) {
+        return requestedCaProfileId;
+    }
+
+    if (user?.role !== "CA_USER") {
+        throw new Error("caProfileId is required");
+    }
+
+    const caProfile = await prisma.cAProfile.findUnique({
+        where: { userId: BigInt(user.userId) },
+        select: { id: true }
+    });
+
+    if (!caProfile) {
+        throw new Error("CA profile not found");
+    }
+
+    return caProfile.id.toString();
+};
+
 const toDateTime = (dateKey, time) => new Date(`${dateKey}T${time}:00`);
 
 const hasTimeOverlap = (slotStart, slotEnd, eventStart, eventEnd) =>
@@ -141,7 +162,6 @@ const fetchGoogleCalendarEvents = async (caProfile, start, end) => {
             }
         });
     }
-    console.log("calender events:", events);
     return events
         .map((event) => {
             const startValue = event?.start?.dateTime || event?.start?.date;

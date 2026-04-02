@@ -12,6 +12,13 @@ router.post(
 );
 
 router.get(
+    '/caslots',
+    authenticate,
+    role('CA_USER'),
+    controller.getSlots
+);
+
+router.get(
   '/bookings',
   authenticate,
   role('CA_USER'),

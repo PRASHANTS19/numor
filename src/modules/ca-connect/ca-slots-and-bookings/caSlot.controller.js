@@ -1,4 +1,6 @@
 const service = require('./caSlot.service');
+const { google } = require("googleapis");
+
 
 exports.createSlots = async (req, res) => {
   try {
@@ -101,3 +103,75 @@ exports.listCABookings = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.getGoogleCalendarAuthUrl = async (req, res) => {
+  const { caProfileId } = req.query;
+
+  if (!caProfileId) {
+    throw new Error("caProfileId is required");
+  }
+
+  const url = oauth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: [
+      "https://www.googleapis.com/auth/calendar",
+      "openid",
+      "email",
+      "profile"
+    ],
+    prompt: "consent",
+    state: caProfileId,
+  });
+
+  res.json({ url });
+};
+exports.googleCallback = async (req, res) => {
+  try {
+    const code = req.query.code;
+    const caProfileId = req.query.state;
+
+    if (!code) {
+      throw new Error("Authorization code missing");
+    }
+
+    // 1️⃣ Get tokens
+    const { tokens } = await oauth2Client.getToken(code);
+    console.log("TOKENS:", tokens);
+
+    // 🔥 2️⃣ Get user info from ID token (BEST WAY)
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+
+    // 3️⃣ Save in DB
+    await prisma.cAProfile.update({
+      where: { id: BigInt(caProfileId) },
+      data: {
+        googleAccessToken: tokens.access_token,
+        googleRefreshToken: tokens.refresh_token ?? undefined,
+        googleTokenExpiry: tokens.expiry_date
+          ? new Date(tokens.expiry_date)
+          : null,
+        googleCalendarEmail: payload.email,
+        googleCalendarConnected: true,
+      },
+    });
+
+    res.send("Google Calendar connected successfully");
+  } catch (err) {
+    console.error(
+      "GOOGLE CALLBACK ERROR:",
+      err.response?.data || err.message
+    );
+    res.status(500).send("Error connecting Google Calendar");
+  }
+};
+
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);

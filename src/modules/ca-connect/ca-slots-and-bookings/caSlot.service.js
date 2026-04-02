@@ -1,6 +1,7 @@
 const prisma = require('../../../config/database');
 const dayjs = require('dayjs');
 const customParseFormat = require("dayjs/plugin/customParseFormat");
+const { google } = require("googleapis");
 const { ca } = require('zod/v4/locales');
 
 exports.createOrUpdateSlots = async (user, payload) => {
@@ -72,6 +73,96 @@ const dayOrder = {
     SUNDAY: 7
 };
 
+const toDateTime = (dateKey, time) => new Date(`${dateKey}T${time}:00`);
+
+const hasTimeOverlap = (slotStart, slotEnd, eventStart, eventEnd) =>
+    slotStart < eventEnd && slotEnd > eventStart;
+
+const fetchGoogleCalendarEvents = async (caProfile, start, end) => {
+    if (!caProfile?.googleCalendarConnected) {
+        return [];
+    }
+
+    if (!caProfile.googleAccessToken && !caProfile.googleRefreshToken) {
+        return [];
+    }
+
+    const oauth2Client = new google.auth.OAuth2(
+        process.env.GOOGLE_CLIENT_ID,
+        process.env.GOOGLE_CLIENT_SECRET,
+        process.env.GOOGLE_REDIRECT_URI
+    );
+
+    oauth2Client.setCredentials({
+        access_token: caProfile.googleAccessToken || undefined,
+        refresh_token: caProfile.googleRefreshToken || undefined,
+        expiry_date: caProfile.googleTokenExpiry
+            ? new Date(caProfile.googleTokenExpiry).getTime()
+            : undefined
+    });
+
+    const calendar = google.calendar({ version: "v3", auth: oauth2Client });
+
+    const events = [];
+    let pageToken;
+
+    try {
+        do {
+            const response = await calendar.events.list({
+                calendarId: "primary",
+                timeMin: start.startOf("day").toDate().toISOString(),
+                timeMax: end.endOf("day").toDate().toISOString(),
+                singleEvents: true,
+                orderBy: "startTime",
+                maxResults: 2500,
+                pageToken
+            });
+
+            events.push(...(response.data.items || []));
+            pageToken = response.data.nextPageToken;
+        } while (pageToken);
+    } catch (error) {
+        console.error("Google Calendar fetch failed:", error?.message || error);
+        return [];
+    }
+
+    const refreshed = oauth2Client.credentials || {};
+    if (
+        refreshed.access_token &&
+        refreshed.access_token !== caProfile.googleAccessToken
+    ) {
+        await prisma.cAProfile.update({
+            where: { id: caProfile.id },
+            data: {
+                googleAccessToken: refreshed.access_token,
+                googleTokenExpiry: refreshed.expiry_date
+                    ? new Date(refreshed.expiry_date)
+                    : caProfile.googleTokenExpiry
+            }
+        });
+    }
+    console.log("calender events:", events);
+    return events
+        .map((event) => {
+            const startValue = event?.start?.dateTime || event?.start?.date;
+            const endValue = event?.end?.dateTime || event?.end?.date;
+
+            if (!startValue || !endValue) {
+                return null;
+            }
+
+            const eventStart = new Date(startValue);
+            const eventEnd = new Date(endValue);
+
+            if (Number.isNaN(eventStart.getTime()) || Number.isNaN(eventEnd.getTime())) {
+                return null;
+            }
+
+            return { start: eventStart, end: eventEnd };
+        })
+        .filter(Boolean);
+};
+
 exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
 
     const start = dayjs(startDate, "YYYY-MM-DD", true);
@@ -82,48 +173,50 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
     }
 
     const result = {};
+    const caId = BigInt(caProfileId);
 
-    // 👉 Step 1: Fetch all slots once
-    const allSlots = await prisma.cASlot.findMany({
-        where: {
-            caProfileId: BigInt(caProfileId)
-        }
-    });
-
-//   -----------------------------------------------------------------------------------------
-    // cleaning expired bookings here to ensure that we don't show blocked slots as unavailable
-//   ------------------------------------------------------------------------------------------
-    // await prisma.cABooking.updateMany({
-    //     where: {
-    //         status: "INITIATED",
-    //         expiresAt: { lt: new Date() }
-    //     },
-    //     data: { status: "EXPIRED" }
-    // });
-
-    // 👉 Step 2: Fetch bookings in range and to avoid Double booking risk we added OR code
-    const bookings = await prisma.cABooking.findMany({
-        where: {
-            caProfileId: BigInt(caProfileId),
-            bookingDate: {
-                gte: new Date(start.format("YYYY-MM-DD")),
-                lte: new Date(end.format("YYYY-MM-DD"))
+    const [allSlots, bookings, caProfile] = await Promise.all([
+        prisma.cASlot.findMany({
+            where: { caProfileId: caId }
+        }),
+        prisma.cABooking.findMany({
+            where: {
+                caProfileId: caId,
+                bookingDate: {
+                    gte: new Date(start.format("YYYY-MM-DD")),
+                    lte: new Date(end.format("YYYY-MM-DD"))
+                },
+                OR: [
+                    { status: "CONFIRMED" },
+                    {
+                        status: "INITIATED",
+                        expiresAt: { gt: new Date() }
+                    }
+                ]
             },
-            OR: [
-                { status: "CONFIRMED" },
-                {
-                    status: "INITIATED",
-                    expiresAt: { gt: new Date() }
-                }
-            ]
-        },
-        select: {
-            slotId: true,
-            bookingDate: true
-        }
-    });
-    // console.log("Fetched bookings:", bookings);
-    // 👉 Step 3: Group bookings by date
+            select: {
+                slotId: true,
+                bookingDate: true
+            }
+        }),
+        prisma.cAProfile.findUnique({
+            where: { id: caId },
+            select: {
+                id: true,
+                googleCalendarConnected: true,
+                googleAccessToken: true,
+                googleRefreshToken: true,
+                googleTokenExpiry: true
+            }
+        })
+    ]);
+
+    if (!caProfile) {
+        throw new Error("CA profile not found");
+    }
+
+    const googleEvents = await fetchGoogleCalendarEvents(caProfile, start, end);
+
     const bookingMap = {};
 
     for (const booking of bookings) {
@@ -135,24 +228,29 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
         bookingMap[dateKey].add(booking.slotId.toString());
     }
 
-    // 👉 Step 4: Loop through each day
     let current = start.clone();
     while (current.isBefore(end) || current.isSame(end)) {
 
         const dateKey = current.format("YYYY-MM-DD");
 
-        // ✅ Format: MONDAY 26-03-2026
         const formattedKey = `${current.format("dddd").toUpperCase()} ${current.format("DD-MM-YYYY")}`;
 
         const day = current.format("dddd").toUpperCase();
 
-        // filter slots for that weekday
         const slotsForDay = allSlots.filter(s => s.day === day);
 
         const blockedIds = bookingMap[dateKey] || new Set();
 
         const availableSlots = slotsForDay
             .filter(slot => !blockedIds.has(slot.id.toString()))
+            .filter((slot) => {
+                const slotStart = toDateTime(dateKey, slot.startTime);
+                const slotEnd = toDateTime(dateKey, slot.endTime);
+
+                return !googleEvents.some((event) =>
+                    hasTimeOverlap(slotStart, slotEnd, event.start, event.end)
+                );
+            })
             .sort((a, b) => a.startTime.localeCompare(b.startTime))
             .map(slot => ({
                 id: slot.id,
@@ -161,7 +259,6 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
                 typeOfCall: slot.typeOfCall
             }));
 
-        // ✅ flat structure
         result[formattedKey] = availableSlots;
 
         current = current.add(1, "day");
@@ -169,7 +266,6 @@ exports.getWeeklyAvailableSlots = async (caProfileId, startDate, endDate) => {
 
     return result;
 };
-
 dayjs.extend(customParseFormat);
 exports.createBooking = async (user, payload) => {
     const { caProfileId, slotId, bookingDate, consultationMode } = payload;
@@ -275,69 +371,69 @@ exports.createBooking = async (user, payload) => {
 };
 
 exports.listCABookings = async (CA) => {
-  const caProfile = await prisma.cAProfile.findUnique({
-    where: { userId: CA.userId }
-  });
+    const caProfile = await prisma.cAProfile.findUnique({
+        where: { userId: CA.userId }
+    });
 
-  if (!caProfile) {
-    throw new Error('CA profile not found');
-  }
-
-  return prisma.cABooking.findMany({
-    where: { caProfileId: caProfile.id },
-    orderBy: { bookingDate: 'desc' },
-    include: {
-      user: {
-        select: { id: true, name: true, email: true }
-      },
-      payment: true,
-      review: true
+    if (!caProfile) {
+        throw new Error('CA profile not found');
     }
-  });
+
+    return prisma.cABooking.findMany({
+        where: { caProfileId: caProfile.id },
+        orderBy: { bookingDate: 'desc' },
+        include: {
+            user: {
+                select: { id: true, name: true, email: true }
+            },
+            payment: true,
+            review: true
+        }
+    });
 };
 
 exports.listUserBookings = async (user) => {
-  return prisma.cABooking.findMany({
-    where: { userId: user.userId },
-    orderBy: { bookingDate: 'desc' },
-    include: {
-      caProfile: {
-        select: {
-          id: true,
-          hourlyFee: true,
-          user: {
-            select: { name: true }
-          }
+    return prisma.cABooking.findMany({
+        where: { userId: user.userId },
+        orderBy: { bookingDate: 'desc' },
+        include: {
+            caProfile: {
+                select: {
+                    id: true,
+                    hourlyFee: true,
+                    user: {
+                        select: { name: true }
+                    }
+                }
+            },
+            payment: true,
+            review: true
         }
-      },
-      payment: true,
-      review: true
-    }
-  });
+    });
 };
 
 exports.getByBookingCode = async (bookingCode, user) => {
-  const booking = await prisma.cABooking.findUnique({
-    where: { bookingCode },
-    include: {
-      caProfile: {
+    const booking = await prisma.cABooking.findUnique({
+        where: { bookingCode },
         include: {
-          user: {
-            select: { id: true, name: true, email: true }
-          }
+            caProfile: {
+                include: {
+                    user: {
+                        select: { id: true, name: true, email: true }
+                    }
+                }
+            },
+            user: {
+                select: { id: true, name: true, email: true }
+            },
+            payment: true,
+            review: true
         }
-      },
-      user: {
-        select: { id: true, name: true, email: true }
-      },
-      payment: true,
-      review: true
-    }
-  });
+    });
 
-  if (!booking) {
-    throw new Error('Booking not found');
-  }
-  return booking;
+    if (!booking) {
+        throw new Error('Booking not found');
+    }
+    return booking;
 };
 

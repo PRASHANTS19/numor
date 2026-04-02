@@ -25,4 +25,16 @@ router.get(
   controller.getBookingByCode
 );
 
+router.get(
+  '/google/calendarAuthUrl',
+  authenticate,
+  role('CA_USER'),
+  controller.getGoogleCalendarAuthUrl
+);
+
+router.get(
+  '/google/callback',
+  controller.googleCallback
+);
+
 module.exports = router;

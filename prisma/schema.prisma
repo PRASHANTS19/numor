@@ -263,6 +263,12 @@ model CAProfile {
   reviews         CAReview[]
   slots           CASlot[]
 
+  googleCalendarConnected Boolean   @default(false)
+  googleAccessToken       String?
+  googleRefreshToken      String?
+  googleTokenExpiry       DateTime?
+  googleCalendarEmail     String?
+
   pendingProfile CAProfilePending? @relation("CAProfileToPending")
 
   @@map("ca_profiles")

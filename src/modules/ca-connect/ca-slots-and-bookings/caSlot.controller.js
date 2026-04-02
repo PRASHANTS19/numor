@@ -21,8 +21,12 @@ exports.createSlots = async (req, res) => {
 
 exports.getSlots = async (req, res) => {
   try {
-    const caProfileId = req.params.caProfileId;
+    const requestedCaProfileId = req.params.caProfileId || req.query.caProfileId;
     const { startDate, endDate } = req.query;
+    const caProfileId = await service.resolveCaProfileIdForSlots(
+      req.user,
+      requestedCaProfileId
+    );
 
     const slots = await service.getWeeklyAvailableSlots(
       caProfileId,

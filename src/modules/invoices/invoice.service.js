@@ -5,6 +5,8 @@ const invoiceQueue = require('../../queues/invoice.queue');
 const qstashService = require("../../queues/invoice.qstash");
 const { is } = require('zod/locales');
 const storage = require('../../storage/storage.service');
+const { Parser } = require("json2csv");
+const ExcelJS = require("exceljs");
 
 function isExcelFile(mimetype, filename) {
     if (mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
@@ -888,6 +890,114 @@ async function deleteInvoice(user, id) {
     };
 }
 
+async function exportInvoices(
+    user,
+    startDate,
+    endDate,
+    format,
+    includeItems
+) {
+    const where = {
+        customerId: BigInt(user.userId),
+    };
+
+    if (startDate || endDate) {
+        where.issueDate = {};
+
+        if (startDate) {
+            where.issueDate.gte = new Date(startDate);
+        }
+
+        if (endDate) {
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+            where.issueDate.lte = end;
+        }
+    }
+    const invoices = await prisma.invoiceBill.findMany({
+        where,
+        include: {
+            items: includeItems,
+        },
+        orderBy: {
+            createdAt: "desc",
+        },
+    });
+
+    let rows = [];
+
+    invoices.forEach(inv => {
+
+        const baseData = {
+            invoiceId: inv.id.toString(),
+            invoiceNumber: inv.invoiceNumber,
+            issueDate: inv.issueDate,
+            dueDate: inv.dueDate,
+            status: inv.status,
+            category: inv.category,
+
+            currency: inv.currency,
+            totalAmount: inv.totalAmount,
+            taxAmount: inv.taxAmount,
+            discount: inv.discount,
+            shippingCost: inv.shippingCost,
+
+            paidAmount: inv.paidAmount,
+            balanceDue: inv.balanceDue,
+
+            sellerName: inv.sellerName,
+            sellerEmail: inv.sellerEmail,
+
+            placeOfSupply: inv.placeOfSupply,
+            taxType: inv.taxType,
+        };
+
+        // WITH ITEMS (flattened)
+        if (includeItems && inv.items?.length) {
+
+            inv.items.forEach(item => {
+                rows.push({
+                    ...baseData,
+
+                    itemName: item.itemName,
+                    description: item.description,
+                    quantity: item.quantity,
+                    unitPrice: item.unitPrice,
+                    taxRate: item.taxRate,
+                    totalPrice: item.totalPrice,
+                    unitType: item.unitType,
+                });
+            });
+
+        } else {
+            // WITHOUT ITEMS
+            rows.push(baseData);
+        }
+    });
+    if (format === "csv") {
+        const parser = new Parser();
+        return parser.parse(rows);
+    }
+    if (format === "excel") {
+        const workbook = new ExcelJS.Workbook();
+        const sheet = workbook.addWorksheet("Invoices");
+
+        const headers = Object.keys(rows[0] || {});
+
+        sheet.columns = headers.map(h => ({
+            header: h,
+            key: h,
+            width: 20,
+        }));
+
+        rows.forEach(r => sheet.addRow(r));
+
+        return await workbook.xlsx.writeBuffer();
+    }
+
+    throw new Error("Invalid format");
+};
+
 module.exports = {
     saveInvoiceFromPreview,
     listInvoices,
@@ -899,5 +1009,6 @@ module.exports = {
     openStream,
     pushPdfReady,
     updateInvoice,
-    deleteInvoice
+    deleteInvoice,
+    exportInvoices
 };

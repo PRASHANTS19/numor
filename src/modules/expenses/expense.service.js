@@ -4,6 +4,8 @@ const aiService = require('../ai/ai.service');
 const fs = require("fs");
 const storageService = require("../../storage/storage.service");
 const { Prisma } = require("@prisma/client");
+const { Parser } = require("json2csv");
+const ExcelJS = require("exceljs");
 
 function isExcelFile(mimetype, filename) {
   if (mimetype === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
@@ -385,3 +387,100 @@ exports.getSignedUrl = async(user, id) => {
         url
     };
 }
+
+exports.exportExpenses = async (
+  user,
+  startDate,
+  endDate,
+  format,
+  includeItems
+) => {
+
+  const where = {
+    userId: BigInt(user.userId),
+  };
+
+  if (startDate || endDate) {
+    where.expenseDate = {};
+
+    if (startDate) {
+      where.expenseDate.gte = new Date(startDate);
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.expenseDate.lte = end;
+    }
+  }
+
+  const expenses = await prisma.expenseBill.findMany({
+    where,
+    include: {
+      items: includeItems, // 🔥 dynamic include
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+  });
+
+  // 👉 Transform data
+  let rows = [];
+
+  expenses.forEach(exp => {
+    if (includeItems && exp.items?.length) {
+      exp.items.forEach(item => {
+        rows.push({
+          expenseId: exp.id.toString(),
+          merchant: exp.merchant,
+          expenseDate: exp.expenseDate,
+          totalAmount: exp.totalAmount,
+          category: exp.category,
+          paymentMethod: exp.paymentMethod,
+
+          itemName: item.itemName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          totalPrice: item.totalPrice,
+          taxRate: item.taxRate,
+          unitType: item.unitType,
+        });
+      });
+    } else {
+      rows.push({
+        expenseId: exp.id.toString(),
+        merchant: exp.merchant,
+        expenseDate: exp.expenseDate,
+        totalAmount: exp.totalAmount,
+        category: exp.category,
+        paymentMethod: exp.paymentMethod,
+      });
+    }
+  });
+
+  if (format === "csv") {
+    const parser = new Parser();
+    return parser.parse(rows);
+  }
+
+  // 👉 EXCEL
+  if (format === "excel") {
+    const workbook = new ExcelJS.Workbook();
+    const sheet = workbook.addWorksheet("Expenses");
+
+    // Headers
+    const headers = Object.keys(rows[0] || {});
+    sheet.columns = headers.map(h => ({
+      header: h,
+      key: h,
+      width: 20,
+    }));
+
+    // Rows
+    rows.forEach(r => sheet.addRow(r));
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
+  throw new Error("Invalid format. Use csv or excel.");
+};

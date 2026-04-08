@@ -9,6 +9,11 @@ const controller = require('./invoice.controller');
 //   upload.single('file'),
 //   controller.previewOCR
 // );
+router.get(
+  "/export",
+  auth,
+  controller.exportInvoices
+);
 
 router.post(
   '/parseInvoice',

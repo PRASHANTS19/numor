@@ -151,3 +151,39 @@ exports.getExpenseReceipt = async (req, res) => {
     });
   }
 };
+
+exports.exportExpenses = async (req, res) => {
+  try {
+    const { startDate, endDate, format = "csv", includeItems } = req.query;
+
+    const includeItemsBool = includeItems === "true";
+
+    const file = await expenseService.exportExpenses(
+      req.user,
+      startDate,
+      endDate,
+      format,
+      includeItemsBool
+    );
+
+    if (format === "excel") {
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader("Content-Disposition", "attachment; filename=expenses.xlsx");
+
+      return res.send(file);
+    }
+
+    // CSV
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=expenses.csv");
+
+    return res.send(file);
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -9,6 +9,13 @@ const controller = require('./expense.controller');
 //   upload.single('file'),
 //   controller.previewOCR
 // );
+
+router.get(
+  "/export",
+  auth,
+  controller.exportExpenses
+);
+
 router.post(
   '/parseExpense',
   auth,

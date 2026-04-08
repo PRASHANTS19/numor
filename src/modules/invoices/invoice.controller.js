@@ -167,3 +167,43 @@ exports.deleteInvoice = async (req, res) => {
     });
   }
 };
+
+exports.exportInvoices = async (req, res) => {
+  try {
+    const { startDate, endDate, format = "csv", includeItems } = req.query;
+
+    const includeItemsBool = includeItems === "true";
+
+    const file = await invoiceService.exportInvoices(
+      req.user,
+      startDate,
+      endDate,
+      format,
+      includeItemsBool
+    );
+
+    if (format === "excel") {
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        "attachment; filename=invoices.xlsx"
+      );
+      return res.send(file);
+    }
+
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader(
+      "Content-Disposition",
+      "attachment; filename=invoices.csv"
+    );
+
+    return res.send(file);
+
+  } catch (err) {
+    console.error("Export Invoice Error:", err);
+    res.status(500).json({ error: err.message });
+  }
+};

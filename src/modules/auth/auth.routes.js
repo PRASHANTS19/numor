@@ -22,6 +22,10 @@ router.post(
     '/google',
     controller.googleLogin);
 
+router.post(
+    '/linkedin',
+    controller.linkedinLogin);
+
 router.get(
     '/google-local-storage-based-login',
     controller.googleLocalStorageBasedLogin

@@ -279,6 +279,130 @@ async function googleAuth(code, user_type_for_signup) {
     return { token, user };
 }
 
+async function linkedinAuth(code, user_type_for_signup) {
+    const sessionId = crypto.randomUUID();
+
+    if (!code) {
+        throw new Error("Authorization code is required");
+    }
+
+    let redirect_uri;
+    let role;
+
+    if (user_type_for_signup === "CA_USER") {
+        redirect_uri = process.env.LINKEDIN_REDIRECT_URI_CA_SIGNUP;
+        role = "CA_USER";
+    } else if (user_type_for_signup === "SME_USER") {
+        redirect_uri = process.env.LINKEDIN_REDIRECT_URI_SME_SIGNUP;
+        role = "SME_USER";
+    } else {
+        redirect_uri = process.env.LINKEDIN_REDIRECT_URI_LOGIN;
+    }
+
+    // Step 1: Exchange code for access token
+    const params = new URLSearchParams({
+        grant_type: "authorization_code",
+        code,
+        redirect_uri,
+        client_id: process.env.LINKEDIN_CLIENT_ID,
+        client_secret: process.env.LINKEDIN_CLIENT_SECRET,
+    });
+
+    const tokenRes = await fetch(
+        "https://www.linkedin.com/oauth/v2/accessToken",
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+            body: params.toString(),
+        }
+    );
+
+    if (!tokenRes.ok) {
+        const error = await tokenRes.text();
+        console.error("LinkedIn token error:", error);
+        throw new Error("Failed to exchange code for token");
+    }
+
+    const { access_token } = await tokenRes.json();
+
+    // Step 2: Fetch user info
+    const profileRes = await fetch("https://api.linkedin.com/v2/userinfo", {
+        headers: {
+            Authorization: `Bearer ${access_token}`,
+        },
+    });
+
+    if (!profileRes.ok) {
+        const error = await profileRes.text();
+        console.error("LinkedIn profile error:", error);
+        throw new Error("Failed to fetch LinkedIn profile");
+    }
+
+    const linkedinUser = await profileRes.json();
+
+    const {
+        sub: linkedinId,
+        email,
+        name,
+        picture
+    } = linkedinUser;
+
+    if (!email) {
+        throw new Error("LinkedIn account has no email");
+    }
+
+    // Step 3: Find or create user
+    let user = await prisma.user.findUnique({
+        where: { email },
+    });
+
+    if (user) {
+        const shouldUpdateRole =
+            user.role === "SME_USER" && role === "CA_USER";
+
+        user = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                isEmailVerified: true,
+                linkedinId,
+                authProvider: "LINKEDIN",
+                ...(shouldUpdateRole && { role }),
+            },
+        });
+    } else {
+        const org = await prisma.organization.create({
+            data: {
+                name: `${name}'s Organization`,
+                email,
+            },
+        });
+
+        user = await prisma.user.create({
+            data: {
+                orgId: org.id,
+                name,
+                email,
+                isEmailVerified: true,
+                linkedinId,
+                authProvider: "LINKEDIN",
+                userType: "INTERNAL",
+                role: role ?? "SME_USER",
+            },
+        });
+    }
+
+    const token = signToken({
+        userId: user.id,
+        orgId: user.orgId,
+        role: user.role,
+        userType: user.userType,
+        sessionId,
+    });
+
+    return { token, user };
+}
 
 function convertBigIntToString(obj) {
     if (typeof obj === 'bigint') {
@@ -493,5 +617,6 @@ module.exports = {
     resetPassword,
     verifyResetCode,
     verifyEmail,
-    verifyEmailOTP
+    verifyEmailOTP,
+    linkedinAuth
 };

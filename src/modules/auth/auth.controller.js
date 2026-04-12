@@ -111,6 +111,29 @@ async function googleLogin(req, res, next) {
   }
 }
 
+
+async function linkedinLogin(req, res, next) {
+  try {
+    const { code, user_type_for_signup } = req.body;
+
+    const { token, user } = await authService.linkedinAuth(
+      code,
+      user_type_for_signup
+    );
+
+    res.json({
+      success: true,
+      message: "LinkedIn login successful",
+      data: {
+        token,
+        user,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 async function googleLocalStorageBasedLogin(req, res, next) {
   const { state, code } = req.query;
   let user_type_for_signup = undefined;
@@ -260,5 +283,6 @@ module.exports = {
   resetUserPassword,
   verifyCode,
   verifyEmail,
-  verifyEmailOtp
+  verifyEmailOtp,
+  linkedinLogin
 };

@@ -44,6 +44,7 @@ model User {
   profilePhotoKey        String?
   authProvider           AuthProvider  @default(LOCAL)
   googleId               String?       @unique
+  linkedinId String? @unique
   role                   Role          @default(SME_USER)
   isActive               Boolean       @default(true)
   createdAt              DateTime      @default(now())
@@ -511,6 +512,8 @@ enum CABOOKINGTypeOfCall {
 enum AuthProvider {
   LOCAL
   GOOGLE
+  LINKEDIN
+  APPLE
 }
 
 enum UserType {

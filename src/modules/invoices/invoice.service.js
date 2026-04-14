@@ -255,8 +255,10 @@ async function listInvoiceProducts(invoiceId, page = 1, limit = 10) {
 }
 
 async function confirmAndCreateInvoice(user, data) {
-    console.log('Invoice data before processing:', data);
+    // console.log('Invoice data before processing:', data);
     const isDraft = data.status === 'DRAFT';
+
+    // console.log('Is draft:', isDraft);
     const invoiceId = data.id;
     // 1️⃣ Calculate totals safely
     const subtotal = data.items.reduce(
@@ -403,10 +405,10 @@ async function confirmAndCreateInvoice(user, data) {
             effectiveTax,
 
             // 📌 Status
-            status: data.status ?? "UNPAID",
+            status: data.status ?? "DRAFT",
             confirmedAt: new Date(),
             sentAt: new Date(),
-            pdfStatus: isDraft ? "NOT_STARTED" : "QUEUED",
+            pdfStatus: "NOT_STARTED",
             category: data.category ?? "OTHER",
 
             // 🧾 Seller snapshot
@@ -469,7 +471,7 @@ async function confirmAndCreateInvoice(user, data) {
         },
         include: { items: true },
     });
-    console.log('Created invoice with ID:', invoice.id);
+    // console.log('Created invoice with ID:', invoice.id);
 
     // 3️⃣ Queue PDF generation
     // await invoiceQueue.enqueue({ invoiceId: invoice.id });
@@ -479,11 +481,27 @@ async function confirmAndCreateInvoice(user, data) {
     //     invoiceId: invoice.id,
     // });
     if (!isDraft) {
-        await qstashService.publishInvoicePdfJob({
-            invoiceId: invoice.id,
-        });
+        try {
+           const queueResponse =  await qstashService.publishInvoicePdfJob({
+                invoiceId: invoice.id,
+            });
+            console.log('QStash publish log:', queueResponse);
+            await prisma.invoiceBill.update({
+                where: { id: invoice.id },
+                data: { pdfStatus: "QUEUED" },
+            });
+
+        } catch (err) {
+            console.error("QStash publish failed:", err);
+
+            // ❌ Mark FAILED
+            await prisma.invoiceBill.update({
+                where: { id: invoice.id },
+                data: { pdfStatus: "FAILED" },
+            });
+        }
     }
-    console.log('Data after Processing:', invoice);
+    // console.log('Data after Processing:', invoice);
 
     return invoice;
 }

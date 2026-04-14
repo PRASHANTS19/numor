@@ -5,7 +5,7 @@ const qstash = new Client({
 });
 
 exports.publishInvoicePdfJob = async ({ invoiceId }) => {
-  await qstash.publishJSON({
+  const res = await qstash.publishJSON({
     url: `${process.env.BASE_URL}/api/qstash/process-invoice-pdf`,
     body: {
       invoiceId: invoiceId.toString(),
@@ -13,6 +13,7 @@ exports.publishInvoicePdfJob = async ({ invoiceId }) => {
     retries: 5,     // automatic retries
     delay: 0,       // immediate execution
   });
+  return res;
 };
 
 exports.publishExpensePdfToStorage = async ({ invoiceId }) => {

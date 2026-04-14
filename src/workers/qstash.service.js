@@ -35,6 +35,7 @@ exports.process = async (invoiceId) => {
     data: {
       pdfStatus: "READY",
       pdfKey,
+      status: "UNPAID", // Update status to UNPAID when PDF is ready
     },
   });
 };

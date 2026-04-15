@@ -35,9 +35,9 @@ exports.process = async (invoiceId) => {
   try {
     const fs = require("fs");
     const path = require("path");
-    const tempPath = path.join(__dirname, "temp.pdf");
-    fs.writeFileSync(tempPath, pdfBuffer);
-    const base64Pdf = fs.readFileSync(tempPath).toString("base64");
+
+    const cleanBuffer = Buffer.from(pdfBuffer);
+    const base64Pdf = cleanBuffer.toString("base64");
 
     console.log(`Sending invoice email to ${invoice.customer?.email} with PDF key ${pdfKey}`);
     // const base64Pdf = pdfBuffer.toString("base64");

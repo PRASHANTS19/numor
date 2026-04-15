@@ -192,6 +192,7 @@ async function verifyEmail(req, res) {
       result
     });
   } catch (error) {
+    console.log("Email verification error:", error);
     res.status(400).json({
       success: false,
       message: error.message

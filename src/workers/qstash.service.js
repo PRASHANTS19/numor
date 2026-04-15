@@ -33,9 +33,14 @@ exports.process = async (invoiceId) => {
   const pdfKey = await storage.upload(path, pdfBuffer);
 
   try {
-    // console.log("invoice details:", invoice);
+    const fs = require("fs");
+    const path = require("path");
+    const tempPath = path.join(__dirname, "temp.pdf");
+    fs.writeFileSync(tempPath, pdfBuffer);
+    const base64Pdf = fs.readFileSync(tempPath).toString("base64");
+
     console.log(`Sending invoice email to ${invoice.customer?.email} with PDF key ${pdfKey}`);
-    // const base64Pdf = pdfBuffer.toString("base64").replace(/\n/g, "");
+    // const base64Pdf = pdfBuffer.toString("base64");
     // const fs = require("fs");
     // fs.writeFileSync("debug.pdf", pdfBuffer);
     const res = await emailService.sendEmailWithAttachment({
@@ -45,9 +50,10 @@ exports.process = async (invoiceId) => {
       attachments: [
         {
           filename: `${invoice.invoiceNumber}.pdf`,
-          content: pdfBuffer.toString("base64"),
-          type: "application/pdf",
-          encoding: "base64",
+          content: base64Pdf,
+          // content: pdfBuffer.toString("base64"),
+          // type: "application/pdf",
+          // encoding: "base64",
         },
       ],
     });

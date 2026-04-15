@@ -2,6 +2,8 @@
 const prisma = require("../config/database");
 const pdfService = require("../services/pdf.service");
 const storage = require("../storage/storage.service");
+const emailService = require('../services/email.service');
+const { content } = require("googleapis/build/src/apis/content");
 
 exports.process = async (invoiceId) => {
   const id = BigInt(invoiceId);
@@ -9,7 +11,7 @@ exports.process = async (invoiceId) => {
   // 🔒 Idempotency guard
   const invoice = await prisma.invoiceBill.findUnique({
     where: { id },
-    include: { items: true, organization: true, client: true },
+    include: { items: true, organization: true, client: true, customer: true },
   });
 
   if (!invoice) {
@@ -29,6 +31,32 @@ exports.process = async (invoiceId) => {
 
   const path = `invoices/${invoice.orgId}/${invoice.invoiceNumber}.pdf`;
   const pdfKey = await storage.upload(path, pdfBuffer);
+
+  try {
+    // console.log("invoice details:", invoice);
+    console.log(`Sending invoice email to ${invoice.customer?.email} with PDF key ${pdfKey}`);
+    // const base64Pdf = pdfBuffer.toString("base64").replace(/\n/g, "");
+    // const fs = require("fs");
+    // fs.writeFileSync("debug.pdf", pdfBuffer);
+    const res = await emailService.sendEmailWithAttachment({
+      to: invoice.customer?.email,
+      subject: `Invoice ${invoice.invoiceNumber}`,
+      html: `<p>Your invoice is attached.</p>`,
+      attachments: [
+        {
+          filename: `${invoice.invoiceNumber}.pdf`,
+          content: pdfBuffer.toString("base64"),
+          type: "application/pdf",
+          encoding: "base64",
+        },
+      ],
+    });
+    console.log("Email sent response:", res);
+
+  } catch (err) {
+    console.error("Email sending failed:", err);
+  }
+
 
   await prisma.invoiceBill.update({
     where: { id },

@@ -64,3 +64,21 @@ exports.sendBookingEmails = async (booking) => {
     throw new Error("Email service failed", err);
   }
 };
+
+exports.sendEmailWithAttachment = async ({ to, subject, html, attachments }) => {
+  try {
+    if (!to) throw new Error("Recipient email missing");
+    const response = await resend.emails.send({
+      from: process.env.EMAIL_FROM,
+      to,
+      subject,
+      html,
+      attachments, 
+    });
+
+    return response;
+  } catch (error) {
+    console.error("Resend actual error:", error);
+    throw new Error("Email service failed");
+  }
+};

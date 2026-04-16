@@ -58,22 +58,24 @@ exports.sendBookingEmails = async (booking) => {
       subject: 'New consultation booked',
       html: baseHtml.replace('{{name}}', booking.caProfile.user.name)
     });
-    
+
     return { userEmailResponse, caEmailResponse };
   } catch (err) {
     throw new Error("Email service failed", err);
   }
 };
 
-exports.sendEmailWithAttachment = async ({ to, subject, html, attachments }) => {
+exports.sendEmailWithAttachment = async ({to, subject, html, text, attachments}) => {
   try {
     if (!to) throw new Error("Recipient email missing");
+
     const response = await resend.emails.send({
       from: process.env.EMAIL_FROM,
       to,
       subject,
       html,
-      attachments, 
+      text: text || html.replace(/<[^>]+>/g, ""), // fallback
+      attachments,
     });
 
     return response;

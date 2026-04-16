@@ -254,7 +254,7 @@ async function listInvoiceProducts(invoiceId, page = 1, limit = 10) {
     })
 }
 
-async function confirmAndCreateInvoice(user, data) {
+async function confirmAndCreateInvoice(user, data, sendEmail = false) {
     // console.log('Invoice data before processing:', data);
     const isDraft = data.status === 'DRAFT';
 
@@ -484,6 +484,7 @@ async function confirmAndCreateInvoice(user, data) {
         try {
            const queueResponse =  await qstashService.publishInvoicePdfJob({
                 invoiceId: invoice.id,
+                sendEmail
             });
             console.log('QStash publish log:', queueResponse);
             await prisma.invoiceBill.update({

@@ -79,7 +79,8 @@ exports.confirmAndCreateInvoice = async function (req, res) {
     const user = req.user;
     const payload = req.body;
 
-    const invoice = await invoiceService.confirmAndCreateInvoice(user, payload);
+    const sendEmail = req.query.sendEmail === "true";
+    const invoice = await invoiceService.confirmAndCreateInvoice(user, payload, sendEmail);
 
     return res.status(201).json({
       success: true,

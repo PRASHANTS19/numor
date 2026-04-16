@@ -4,11 +4,12 @@ const qstash = new Client({
   token: process.env.QSTASH_TOKEN,
 });
 
-exports.publishInvoicePdfJob = async ({ invoiceId }) => {
+exports.publishInvoicePdfJob = async ({ invoiceId, sendEmail }) => {
   const res = await qstash.publishJSON({
     url: `${process.env.BASE_URL}/api/qstash/process-invoice-pdf`,
     body: {
       invoiceId: invoiceId.toString(),
+      sendEmail
     },
     retries: 5,     // automatic retries
     delay: 0,       // immediate execution

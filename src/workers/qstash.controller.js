@@ -1,14 +1,14 @@
 const invoicePdfService = require("./qstash.service");
 
 exports.processInvoicePdf = async (req, res) => {
-  const { invoiceId } = req.body;
+  const { invoiceId, sendEmail } = req.body;
 
   if (!invoiceId) {
     return res.status(400).json({ error: "invoiceId is required" });
   }
 
   try {
-    await invoicePdfService.process(invoiceId);
+    await invoicePdfService.process(invoiceId, sendEmail);
 
     return res.status(200).json({
       success: true,

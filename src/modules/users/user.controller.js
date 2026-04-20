@@ -93,3 +93,39 @@ exports.deleteProfilePhoto = async (req, res, next) => {
     res.status(500).json({ message: err.message });
   }
 }
+
+
+exports.saveWidgets = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { widgets } = req.body;
+
+    const data = await service.saveWidgets(userId, widgets);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+
+exports.deleteWidget = async (req, res, next) => {
+  try {
+    const userId = req.user.userId;
+    const { widgetId } = req.query;
+
+    console.log('Deleting widget for user:', userId, 'Widget ID:', widgetId);
+
+    const data = await service.deleteWidget(userId, widgetId);
+
+    res.json({
+      success: true,
+      data
+    });
+  } catch (err) {
+    next(err);
+  }
+};

@@ -11,42 +11,35 @@ const CAslotcontroller = require('../ca-connect/ca-slots-and-bookings/caSlot.con
 
 router.use(auth);
 
-router.get('/me', controller.getCurrentUser);
-
-// router.use(allowRoles('ADMIN'));
-
-// router.post('/', validate(validator.createUserSchema), controller.createUser);
-// // router.get('/', controller.listUsers);
-// router.get('/:id', controller.getUser);
-router.put('/update', validate(validator.updateUserSchema), controller.updateUser);
-// router.patch(
-//     '/:id/status',
-//     validate(validator.updateStatusSchema),
-//     controller.updateUserStatus
-// );
-
-
+router.get('/me',
+    controller.getCurrentUser
+);
+router.post('/widgets',
+    controller.saveWidgets
+);
+router.delete('/widgets/delete',
+    controller.deleteWidget
+);
+router.put('/update',
+    validate(validator.updateUserSchema),
+    controller.updateUser
+);
 router.post(
     '/profilePhoto',
     role('SME_USER'),
     caUpload.single("file"),
     controller.uploadProfilePhoto
 );
-
-
 router.get(
     '/profilePhoto',
     role('SME_USER'),
     controller.getProfilePhoto
 );
-
-
 router.delete(
     '/profilePhoto',
     role('SME_USER'),
     controller.deleteProfilePhoto
 );
-
 router.get(
     '/listCAs',
     role('SME_USER'),
@@ -66,15 +59,15 @@ router.post(
 );
 
 router.get(
-  '/bookings',
-  role('SME_USER'),
-  CAslotcontroller.listMyBookings
+    '/bookings',
+    role('SME_USER'),
+    CAslotcontroller.listMyBookings
 );
 
 router.get(
-  '/:bookingCode',
-  role('SME_USER'),
-  CAslotcontroller.getBookingByCode
+    '/:bookingCode',
+    role('SME_USER'),
+    CAslotcontroller.getBookingByCode
 );
 
 module.exports = router;

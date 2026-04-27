@@ -360,9 +360,19 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
 
         // 3️⃣ Queue PDF only once
         if (!isDraft && existing.pdfStatus === "NOT_STARTED") {
-            await qstashService.publishInvoicePdfJob({
-                invoiceId: updated.id,
-            });
+            try {
+                await qstashService.publishInvoicePdfJob({
+                    invoiceId: updated.id,
+                    sendEmail,
+                });
+            } catch (err) {
+                console.error("QStash publish failed (update path):", err);
+
+                await prisma.invoiceBill.update({
+                    where: { id: BigInt(invoiceId) },
+                    data: { pdfStatus: "DRAFT" },
+                });
+            }
         }
         console.log('Data after Processing:', updated.id);
         return updated;
@@ -498,7 +508,7 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
             // ❌ Mark FAILED
             await prisma.invoiceBill.update({
                 where: { id: invoice.id },
-                data: { pdfStatus: "FAILED" },
+                data: { pdfStatus: "DRAFT" },
             });
         }
     }

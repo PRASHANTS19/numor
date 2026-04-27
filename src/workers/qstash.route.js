@@ -1,5 +1,4 @@
 const express = require("express");
-const { verifySignature } = require("@upstash/qstash/nextjs");
 const internalController = require("../workers/qstash.controller");
 
 const router = express.Router();
@@ -7,6 +6,11 @@ const router = express.Router();
 router.post(
   "/process-invoice-pdf",
   internalController.processInvoicePdf
+);
+
+router.post(
+  "/invoice-pdf-failure",
+  internalController.processInvoicePdfFailure
 );
 
 module.exports = router;

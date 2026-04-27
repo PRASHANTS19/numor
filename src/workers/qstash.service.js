@@ -102,6 +102,45 @@ exports.process = async (invoiceId, sendEmail) => {
   });
 };
 
+function parsePayloadBody(body) {
+  if (!body) return null;
+
+  if (typeof body === "object") {
+    return body;
+  }
+
+  if (typeof body === "string") {
+    try {
+      return JSON.parse(body);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+}
+
+exports.markInvoiceAsFailedFromDlq = async (payload) => {
+  const parsedBody = parsePayloadBody(payload?.body);
+  console.log("Parsed DLQ payload body:", parsedBody);
+  const invoiceId =
+    payload?.invoiceId ??
+    parsedBody?.invoiceId;
+
+  if (!invoiceId) {
+    return { updated: false, reason: "invoiceId_not_found" };
+  }
+
+  const id = BigInt(invoiceId);
+
+  await prisma.invoiceBill.update({
+    where: { id },
+    data: { pdfStatus: "DRAFT" },
+  });
+
+  return { updated: true, invoiceId: id.toString() };
+};
+
 
 
 async function handleInvoice(invoiceId) {

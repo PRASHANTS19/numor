@@ -194,30 +194,30 @@ exports.saveWidgets = async (userId, widgets) => {
     throw new Error('User not found');
   }
 
-  const existingWidgets = Array.isArray(user.widgets) ? user.widgets : [];
-  const widgetSet = new Set();
+  // const existingWidgets = Array.isArray(user.widgets) ? user.widgets : [];
+  // const widgetSet = new Set();
 
-  existingWidgets.forEach((name) => {
-    if (typeof name === "string" && ALLOWED_WIDGET_NAMES.has(name)) {
-      widgetSet.add(name);
-    }
-  });
+  // existingWidgets.forEach((name) => {
+  //   if (typeof name === "string" && ALLOWED_WIDGET_NAMES.has(name)) {
+  //     widgetSet.add(name);
+  //   }
+  // });
 
-  widgets.forEach((item) => {
-    const name = typeof item === "string" ? item.trim() : "";
+  // widgets.forEach((item) => {
+  //   const name = typeof item === "string" ? item.trim() : "";
 
-    if (!name) {
-      throw new Error("Each widget must be a non-empty string");
-    }
+  //   if (!name) {
+  //     throw new Error("Each widget must be a non-empty string");
+  //   }
 
-    if (!ALLOWED_WIDGET_NAMES.has(name)) {
-      throw new Error(`Invalid widget name: ${name}`);
-    }
+  //   if (!ALLOWED_WIDGET_NAMES.has(name)) {
+  //     throw new Error(`Invalid widget name: ${name}`);
+  //   }
 
-    widgetSet.add(name);
-  });
+  //   widgetSet.add(name);
+  // });
 
-  const updatedWidgets = Array.from(widgetSet);
+  const updatedWidgets = Array.from(widgets);
 
   await prisma.user.update({
     where: { id: BigInt(userId) },

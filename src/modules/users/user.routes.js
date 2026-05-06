@@ -26,47 +26,39 @@ router.put('/update',
 );
 router.post(
     '/profilePhoto',
-    role('SME_USER'),
     caUpload.single("file"),
     controller.uploadProfilePhoto
 );
 router.get(
     '/profilePhoto',
-    role('SME_USER'),
     controller.getProfilePhoto
 );
 router.delete(
     '/profilePhoto',
-    role('SME_USER'),
     controller.deleteProfilePhoto
 );
 router.get(
     '/listCAs',
-    role('SME_USER'),
     CAcontroller.listCAs);
 
 // Get slots for users
 router.get(
     '/caslots/:caProfileId',
-    role('SME_USER'),
     CAslotcontroller.getSlots
 );
 
 router.post(
     '/bookCA',
-    role('SME_USER'),
     CAslotcontroller.createBooking
 );
 
 router.get(
     '/bookings',
-    role('SME_USER'),
     CAslotcontroller.listMyBookings
 );
 
 router.get(
     '/:bookingCode',
-    role('SME_USER'),
     CAslotcontroller.getBookingByCode
 );
 

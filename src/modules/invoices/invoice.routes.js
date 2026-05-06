@@ -22,11 +22,11 @@ router.post(
   controller.previewInvoice
 );
 
-router.post(
-  '/saveInvoice',
-  auth,
-  controller.confirmAndSaveInvoice
-)
+// router.post(
+//   '/saveInvoice',
+//   auth,
+//   controller.confirmAndSaveInvoice
+// )
 
 router.get(
   '/',

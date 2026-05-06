@@ -497,19 +497,21 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
                 sendEmail
             });
             console.log('QStash publish log:', queueResponse);
-            await prisma.invoiceBill.update({
+            return await prisma.invoiceBill.update({
                 where: { id: invoice.id },
                 data: { pdfStatus: "QUEUED" },
+                include: { items: true }
             });
 
         } catch (err) {
             console.error("QStash publish failed:", err);
 
             // ❌ Mark FAILED
-            await prisma.invoiceBill.update({
-                where: { id: invoice.id },
-                data: { pdfStatus: "DRAFT" },
-            });
+            // return await prisma.invoiceBill.update({
+            //     where: { id: invoice.id },
+            //     data: { pdfStatus: "NOT_STARTED" },
+            //     include: { items: true }
+            // });
         }
     }
     // console.log('Data after Processing:', invoice);

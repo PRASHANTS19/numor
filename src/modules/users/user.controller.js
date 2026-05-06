@@ -115,11 +115,11 @@ exports.saveWidgets = async (req, res, next) => {
 exports.deleteWidget = async (req, res, next) => {
   try {
     const userId = req.user.userId;
-    const { widgetId } = req.query;
+    const widgetName = req.query.widgetName || req.query.name || req.query.widgetId;
 
-    console.log('Deleting widget for user:', userId, 'Widget ID:', widgetId);
+    console.log('Deleting widget for user:', userId, 'Widget name:', widgetName);
 
-    const data = await service.deleteWidget(userId, widgetId);
+    const data = await service.deleteWidget(userId, widgetName);
 
     res.json({
       success: true,

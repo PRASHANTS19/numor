@@ -52,7 +52,7 @@ model User {
   resetPasswordExpiresAt DateTime?
   resetPasswordToken     String?
   isEmailVerified        Boolean       @default(false)
-   widgets   Json? 
+   widgets                String[]
   caBookings             CABooking[]
   caProfile              CAProfile?
   caReviews              CAReview[]

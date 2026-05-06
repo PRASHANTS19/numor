@@ -1,7 +1,6 @@
 const bcrypt = require('bcrypt');
 const prisma = require('../../config/database');
 const storageService = require('../../storage/storage.service');
-const { v4: uuidv4 } = require('uuid');
 
 exports.createUser = async (admin, data) => {
   const { email, name, userType, password } = data;
@@ -171,6 +170,16 @@ exports.deleteProfilePhoto = async (user) => {
 
 };
 
+const ALLOWED_WIDGET_NAMES = new Set([
+  "revenue_vs_time",
+  "expense_vs_time",
+  "cashflow_vs_time",
+  "income_expense_vs_time",
+  "client_vs_revenue",
+  "invoice_status_wise_breakdown",
+  "expense_category_wise_breakdown",
+]);
+
 exports.saveWidgets = async (userId, widgets) => {
   if (!Array.isArray(widgets)) {
     throw new Error('widgets must be an array');
@@ -185,29 +194,30 @@ exports.saveWidgets = async (userId, widgets) => {
     throw new Error('User not found');
   }
 
-  const existingWidgets = user.widgets || [];
+  const existingWidgets = Array.isArray(user.widgets) ? user.widgets : [];
+  const widgetSet = new Set();
 
-  const widgetMap = new Map();
-
-  // Existing widgets
-  existingWidgets.forEach(w => {
-    if (w.id) widgetMap.set(w.id, w);
+  existingWidgets.forEach((name) => {
+    if (typeof name === "string" && ALLOWED_WIDGET_NAMES.has(name)) {
+      widgetSet.add(name);
+    }
   });
 
-  // Incoming widgets
-  widgets.forEach(w => {
-    // 🔥 Generate ID if missing (new widget)
-    if (!w.id) {
-      w.id = uuidv4();
+  widgets.forEach((item) => {
+    const name = typeof item === "string" ? item.trim() : "";
+
+    if (!name) {
+      throw new Error("Each widget must be a non-empty string");
     }
 
-    widgetMap.set(w.id, {
-      ...widgetMap.get(w.id),
-      ...w
-    });
+    if (!ALLOWED_WIDGET_NAMES.has(name)) {
+      throw new Error(`Invalid widget name: ${name}`);
+    }
+
+    widgetSet.add(name);
   });
 
-  const updatedWidgets = Array.from(widgetMap.values());
+  const updatedWidgets = Array.from(widgetSet);
 
   await prisma.user.update({
     where: { id: BigInt(userId) },
@@ -217,34 +227,33 @@ exports.saveWidgets = async (userId, widgets) => {
   return updatedWidgets;
 };
 
-exports.deleteWidget = async (userId, widgetId) => {
-  if (!widgetId) {
-    throw new Error('widgetId is required');
+exports.deleteWidget = async (userId, widgetName) => {
+  if (!widgetName || typeof widgetName !== "string") {
+    throw new Error('widgetName is required');
   }
-
+  const name = widgetName.trim();
+  if (!name) {
+    throw new Error('widgetName is required');
+  }
+  if (!ALLOWED_WIDGET_NAMES.has(name)) {
+    throw new Error(`Invalid widget name: ${name}`);
+  }
   const user = await prisma.user.findUnique({
     where: { id: BigInt(userId) },
     select: { widgets: true }
   });
-
   if (!user) {
     throw new Error('User not found');
   }
 
-  const existingWidgets = user.widgets || [];
-
-  // 🔥 Check if widget exists
-  const widgetExists = existingWidgets.some(
-    (w) => w.id === widgetId
-  );
+  const existingWidgets = Array.isArray(user.widgets) ? user.widgets : [];
+  const widgetExists = existingWidgets.includes(name);
 
   if (!widgetExists) {
     throw new Error('Widget not found');
   }
 
-  const updatedWidgets = existingWidgets.filter(
-    (w) => w.id !== widgetId
-  );
+  const updatedWidgets = existingWidgets.filter((w) => w !== name);
 
   await prisma.user.update({
     where: { id: BigInt(userId) },
@@ -253,3 +262,4 @@ exports.deleteWidget = async (userId, widgetId) => {
 
   return updatedWidgets;
 };
+

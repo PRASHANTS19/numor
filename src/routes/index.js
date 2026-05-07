@@ -1,6 +1,7 @@
 // src/routes/index.js
 const express = require('express');
 const router = express.Router();
+const requireFeature = require('../middlewares/featureFlag.middleware');
 // Module routes
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/users/user.routes');
@@ -35,12 +36,12 @@ router.use('/clients', clientRoutes);
 // router.use('/ai', aiRoutes);
 
 // CA Connect routes
-router.use('/ca-profile', caProfile);
-router.use('/ca-reviews', caReview);
+router.use('/ca-profile', requireFeature('CA_CONNECT'), caProfile);
+router.use('/ca-reviews', requireFeature('CA_CONNECT'), caReview);
 // router.use('/ca/admin', caAdmin);
-router.use('/ca-slots', caSlots);
-router.use('/chatbot', chatBot);
+router.use('/ca-slots', requireFeature('CA_CONNECT'), caSlots);
+router.use('/chatbot', requireFeature('AI_CHATBOT'), chatBot);
 router.use('/qstash', qstashRoute);
-router.use('/admin', adminRoutes);
+router.use('/admin', requireFeature('CA_ADMIN'), adminRoutes);
 
 module.exports = router;

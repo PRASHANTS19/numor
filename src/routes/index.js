@@ -10,6 +10,7 @@ const invoiceRoutes = require('../modules/invoices/invoice.routes');
 const expenseRoutes = require('../modules/expenses/expense.routes');
 const dashboardRoutes = require('../modules/dashboard/dashboard.routes');
 const clientRoutes = require('../modules/clients/client.routes');
+const configRoutes = require('../modules/config/config.routes');
 // const aiRoutes = require('../modules/ai/ai.routes');
 
 const caProfile = require('../modules/ca-connect/ca-profile/caProfile.routes');
@@ -26,13 +27,14 @@ router.get('/health', (req, res) => {
 });
 
 // Mount modules
-router.use('/auth', authRoutes);
-router.use('/user', userRoutes);
-router.use('/organization', orgRoutes);
-router.use('/invoices', invoiceRoutes);
-router.use('/expenses', expenseRoutes);
-router.use('/dashboard', dashboardRoutes);
-router.use('/clients', clientRoutes);
+router.use('/auth', requireFeature('SME_CORE'),authRoutes);
+router.use('/user', requireFeature('SME_CORE'), userRoutes);
+router.use('/organization', requireFeature('SME_CORE'), orgRoutes);
+router.use('/invoices', requireFeature('SME_CORE'), invoiceRoutes);
+router.use('/expenses', requireFeature('SME_CORE'), expenseRoutes);
+router.use('/dashboard', requireFeature('SME_CORE'), dashboardRoutes);
+router.use('/clients', requireFeature('SME_CORE'), clientRoutes);
+router.use('/config', configRoutes);
 // router.use('/ai', aiRoutes);
 
 // CA Connect routes

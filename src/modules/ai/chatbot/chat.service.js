@@ -35,7 +35,7 @@ async function handleChatStream(user, message, res) {
 
     const stream = await numorAgent.stream(
       {
-        messages: [{ role: "user", content: message }],
+        messages: [{ role: "user", content: buildStyledUserMessage(message) }],
       },
       {
         configurable: {
@@ -108,7 +108,7 @@ async function handleChat(user, message) {
       {
         messages: [
           // { role: "system", content: systemPromptContent },
-          { role: "user", content: message },
+          { role: "user", content: buildStyledUserMessage(message) },
         ],
       },
       {
@@ -149,6 +149,35 @@ async function handleChat(user, message) {
 
     throw error;
   }
+}
+
+function detectVerbosityMode(message) {
+  const text = String(message || "").toLowerCase();
+
+  if (/(full report|complete report|all details|deep dive|detailed breakdown)/.test(text)) {
+    return "full";
+  }
+  if (/(brief|short|summary|in short|quick)/.test(text)) {
+    return "brief";
+  }
+  return "detailed";
+}
+
+function buildStyledUserMessage(message) {
+  const mode = detectVerbosityMode(message);
+  let instruction = "";
+
+  if (mode === "brief") {
+    instruction = "Response mode: brief. Keep answer concise and focused on top findings.";
+  } else if (mode === "full") {
+    instruction =
+      "Response mode: full report. Provide a complete structured answer with sections and clear calculations. If very large, still provide best possible detail and mention which section can be expanded next.";
+  } else {
+    instruction =
+      "Response mode: detailed. Give a structured and practical explanation with key numbers and reasoning.";
+  }
+
+  return `${instruction}\n\nUser question:\n${message}`;
 }
 function ensureMarkdownFormatting(text) {
   if (!text) return text;

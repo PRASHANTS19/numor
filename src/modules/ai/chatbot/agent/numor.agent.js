@@ -30,7 +30,7 @@ const contextSchema = {
 const baseModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.5-flash",
   temperature: 0.2,
-  maxOutputTokens: 548,
+  maxOutputTokens: 1200,
   streaming: true, 
 });
 // ---- POSTGRES CHECKPOINTER ----

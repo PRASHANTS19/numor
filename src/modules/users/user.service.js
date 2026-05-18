@@ -64,6 +64,17 @@ exports.getUser = async (admin, userId) => {
       createdAt: true,
       role: true,
       widgets: true,
+      customFieldDefinitions: {
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
     }
   });
   if (!user) throw new Error('User not found');

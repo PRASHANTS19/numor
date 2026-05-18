@@ -57,11 +57,27 @@ model User {
   caProfile              CAProfile?
   caReviews              CAReview[]
   clients                Client[]
+  customFieldDefinitions CustomFieldDefinition[]
+  customFieldValues      InvoiceCustomFieldValue[]
   expenses               ExpenseBill[]
   invoices               InvoiceBill[]
   organization           Organization  @relation(fields: [orgId], references: [id])
 
   @@map("users")
+}
+
+model CustomFieldDefinition {
+  id        BigInt                    @id @default(autoincrement())
+  userId    BigInt
+  name      String
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+  user      User                      @relation(fields: [userId], references: [id])
+  values    InvoiceCustomFieldValue[]
+
+  @@unique([userId, name])
+  @@index([userId])
+  @@map("custom_field_definitions")
 }
 
 model Client {
@@ -150,12 +166,32 @@ model InvoiceBill {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   items                InvoiceBillItem[]
+  customFields         InvoiceCustomFieldValue[]
   client               Client?           @relation(fields: [clientId], references: [id])
   customer             User              @relation(fields: [customerId], references: [id])
   organization         Organization      @relation(fields: [orgId], references: [id])
 
   @@index([clientId])
   @@map("invoice_bills")
+}
+
+model InvoiceCustomFieldValue {
+  id            BigInt                @id @default(autoincrement())
+  invoiceId     BigInt
+  customFieldId BigInt
+  userId        BigInt
+  value         String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  customField   CustomFieldDefinition @relation(fields: [customFieldId], references: [id])
+  invoice       InvoiceBill           @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  user          User                  @relation(fields: [userId], references: [id])
+
+  @@unique([invoiceId, customFieldId])
+  @@index([invoiceId])
+  @@index([customFieldId])
+  @@index([userId])
+  @@map("invoice_custom_field_values")
 }
 
 model InvoiceBillItem {

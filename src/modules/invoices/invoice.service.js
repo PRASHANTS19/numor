@@ -28,6 +28,63 @@ function isCsvFile(mimetype, filename) {
     );
 }
 
+function normalizeCustomFields(customFields) {
+    if (!Array.isArray(customFields)) return [];
+
+    return customFields
+        .map((entry) => {
+            if (!entry || typeof entry !== "object") return null;
+
+            if (typeof entry.name === "string") {
+                const name = entry.name.trim();
+                if (!name) return null;
+                return {
+                    name,
+                    value: entry.value == null ? "" : String(entry.value),
+                };
+            }
+
+            const [name, value] = Object.entries(entry)[0] || [];
+            if (!name || typeof name !== "string" || !name.trim()) return null;
+
+            return {
+                name: name.trim(),
+                value: value == null ? "" : String(value),
+            };
+        })
+        .filter(Boolean);
+}
+
+async function saveInvoiceCustomFields(tx, userId, invoiceId, customFields) {
+    const normalized = normalizeCustomFields(customFields);
+    if (!normalized.length) return;
+
+    for (const field of normalized) {
+        const definition = await tx.customFieldDefinition.upsert({
+            where: {
+                userId_name: {
+                    userId: BigInt(userId),
+                    name: field.name,
+                },
+            },
+            update: {},
+            create: {
+                userId: BigInt(userId),
+                name: field.name,
+            },
+        });
+
+        await tx.invoiceCustomFieldValue.create({
+            data: {
+                invoiceId: BigInt(invoiceId),
+                customFieldId: definition.id,
+                userId: BigInt(userId),
+                value: field.value,
+            },
+        });
+    }
+}
+
 async function previewInvoiceAI(file) {
     const { path, mimetype, originalname } = file;
     //Excel 
@@ -195,6 +252,8 @@ async function saveInvoiceFromPreview(user, payload) {
             }
         }
 
+        await saveInvoiceCustomFields(tx, user.userId, invoice.id, payload.customFields);
+
         return invoice;
     });
 }
@@ -231,6 +290,11 @@ async function listInvoices(user, page = 1, limit = 10, startDate, endDate) {
         where,
         include: {
             items: true,
+            customFields: {
+                include: {
+                    customField: true,
+                },
+            },
         },
         orderBy: {
             createdAt: 'desc',
@@ -355,8 +419,33 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
                     })),
                 },
             },
-            include: { items: true },
+            include: {
+                items: true,
+                customFields: {
+                    include: {
+                        customField: true,
+                    },
+                },
+            },
         });
+
+        if (data.customFields !== undefined) {
+            await prisma.invoiceCustomFieldValue.deleteMany({
+                where: { invoiceId: BigInt(invoiceId) },
+            });
+            await saveInvoiceCustomFields(prisma, user.userId, updated.id, data.customFields);
+            return prisma.invoiceBill.findFirstOrThrow({
+                where: { id: BigInt(invoiceId) },
+                include: {
+                    items: true,
+                    customFields: {
+                        include: {
+                            customField: true,
+                        },
+                    },
+                },
+            });
+        }
 
         // 3️⃣ Queue PDF only once
         if (!isDraft && existing.pdfStatus === "NOT_STARTED") {
@@ -479,8 +568,17 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
                 })),
             },
         },
-        include: { items: true },
+        include: {
+            items: true,
+            customFields: {
+                include: {
+                    customField: true,
+                },
+            },
+        },
     });
+
+    await saveInvoiceCustomFields(prisma, user.userId, invoice.id, data.customFields);
     // console.log('Created invoice with ID:', invoice.id);
 
     // 3️⃣ Queue PDF generation
@@ -500,7 +598,14 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
             return await prisma.invoiceBill.update({
                 where: { id: invoice.id },
                 data: { pdfStatus: "QUEUED" },
-                include: { items: true }
+                include: {
+                    items: true,
+                    customFields: {
+                        include: {
+                            customField: true,
+                        },
+                    },
+                }
             });
 
         } catch (err) {
@@ -516,7 +621,17 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
     }
     // console.log('Data after Processing:', invoice);
 
-    return invoice;
+    return prisma.invoiceBill.findFirstOrThrow({
+        where: { id: invoice.id },
+        include: {
+            items: true,
+            customFields: {
+                include: {
+                    customField: true,
+                },
+            },
+        },
+    });
 }
 
 async function updateInvoice(user, id, data) {
@@ -772,8 +887,36 @@ async function updateInvoice(user, id, data) {
         const updatedInvoice = await tx.invoiceBill.update({
             where: { id: invoiceId },
             data: updateData,
-            include: { items: true },
+            include: {
+                items: true,
+                customFields: {
+                    include: {
+                        customField: true,
+                    },
+                },
+            },
         });
+
+        if (data.customFields !== undefined) {
+            await tx.invoiceCustomFieldValue.deleteMany({
+                where: { invoiceId },
+            });
+            await saveInvoiceCustomFields(tx, user.userId, invoiceId, data.customFields);
+        }
+
+        if (data.customFields !== undefined) {
+            return tx.invoiceBill.findFirstOrThrow({
+                where: { id: invoiceId },
+                include: {
+                    items: true,
+                    customFields: {
+                        include: {
+                            customField: true,
+                        },
+                    },
+                },
+            });
+        }
 
         return updatedInvoice;
     });
@@ -782,9 +925,23 @@ async function updateInvoice(user, id, data) {
 async function getInvoice(user, id) {
     return prisma.invoiceBill.findFirstOrThrow({
         where: { id: BigInt(id), orgId: user.orgId },
-        include: { items: true }
+        include: {
+            items: true,
+            customFields: {
+                include: {
+                    customField: true,
+                },
+            },
+        }
     });
 };
+
+async function listCustomFieldDefinitions(user) {
+    return prisma.customFieldDefinition.findMany({
+        where: { userId: BigInt(user.userId) },
+        orderBy: { createdAt: "asc" },
+    });
+}
 
 async function getSignedPdfUrl(user, id) {
     const invoice = await prisma.invoiceBill.findFirst({
@@ -1041,5 +1198,6 @@ module.exports = {
     pushPdfReady,
     updateInvoice,
     deleteInvoice,
-    exportInvoices
+    exportInvoices,
+    listCustomFieldDefinitions
 };

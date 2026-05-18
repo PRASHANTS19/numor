@@ -35,6 +35,12 @@ router.get(
 )
 
 router.get(
+  '/custom-fields',
+  auth,
+  controller.listCustomFields
+)
+
+router.get(
   '/:id/products',
   auth,
   controller.listInvoiceProduct

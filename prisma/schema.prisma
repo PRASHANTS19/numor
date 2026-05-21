@@ -142,6 +142,7 @@ model InvoiceBill {
   sellerEmail          String?           @db.Citext
   sellerPhone          String?
   sellerTaxId          String?
+  sellerTaxSystem      String?
   iecCode              String?
   lutFiled             Boolean           @default(false)
   taxType              String            @default("NONE")

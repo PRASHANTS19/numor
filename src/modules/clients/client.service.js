@@ -18,7 +18,7 @@ exports.createClient = async (user, data) => {
                 // 🌍 Business / tax
                 country: data.country ?? null,
                 companyType: data.companyType ?? null,
-                gstin: data.gstin ?? null,
+                // gstin: data.gstin ?? null,
                 taxId: data.taxId ?? null,
                 taxSystem: data.taxSystem ?? "NONE",
                 // ✅ Status

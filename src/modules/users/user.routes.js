@@ -17,9 +17,9 @@ router.get('/me',
 router.post('/widgets',
     controller.saveWidgets
 );
-router.delete('/widgets/delete',
-    controller.deleteWidget
-);
+// router.delete('/widgets/delete',
+//     controller.deleteWidget
+// );
 router.put('/update',
     validate(validator.updateUserSchema),
     controller.updateUser

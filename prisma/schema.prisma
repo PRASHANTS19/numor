@@ -90,7 +90,7 @@ model Client {
   city          String?
   state         String?
   zipCode       String?
-  gstin         String?
+  // gstin         String?
   country       String?
   companyType   String?
   taxId         String?

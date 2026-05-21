@@ -520,6 +520,7 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
             sellerZipCode: data.seller?.zipCode,
             sellerCountry: data.seller?.country,
             sellerTaxId: data.seller?.taxId,
+            sellerTaxSystem: data.seller?.taxSystem,
             iecCode: data.seller?.iecCode,
             lutFiled: data.seller?.lutFiled ?? false,
 

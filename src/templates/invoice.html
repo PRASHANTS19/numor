@@ -168,7 +168,7 @@
                <p>{{sellerStreetAddress}}</p>
                <p>{{sellerCity}}, {{sellerState}} {{sellerZipCode}}</p>
                <p>{{sellerCountry}}</p>
-               <p>Tax ID: {{sellerTaxId}}</p>
+               <p>{{sellerTaxSystem}}: {{sellerTaxId}}</p>
                <p>Email: {{sellerEmail}}</p>
                <p>Phone: {{sellerPhone}}</p>
                {{#if sacCode}}
@@ -182,6 +182,7 @@
                <p>{{client.city}}, {{client.state}} {{client.zip}}</p>
                <p>{{client.country}}</p>
                <p>{{client.email}}</p>
+               <p>{{client.taxSystem}}: {{client.taxId}}</p>
                <p>{{client.phone}}</p>
                <p>{{client.companyType}}</p>
             </div>

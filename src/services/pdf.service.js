@@ -3,6 +3,21 @@ const path = require("path");
 const Handlebars = require("handlebars");
 const puppeteer = require("puppeteer");
 
+export const getTaxSystem = (country)=> {
+  if (!country) return "";
+  if (country === "India") return "GST";
+  if (country === "United States" || country === "US") return "SALES";
+  return "VAT";
+};
+
+export const getTaxLabel = (country) => {
+  const sys = getTaxSystem(country);
+  if (sys === "GST") return "GSTIN";
+  if (sys === "VAT") return "VATIN";
+  if (sys === "SALES") return "Sales Tax ID";
+  return "Tax ID (GST/VAT/Sales Tax)";
+};
+
 // In CommonJS, __dirname already exists
 function generateInvoicePdf(invoice) {
   return (async () => {
@@ -15,9 +30,10 @@ function generateInvoicePdf(invoice) {
 
     const html = fs.readFileSync(templatePath, "utf-8");
     const template = Handlebars.compile(html);
-
+    const clientTaxLabel = getTaxLabel(invoice.client.country)
     const htmlWithData = template({
       ...invoice,
+      clientTaxLabel,
       issueDate: invoice.issueDate.toISOString().split("T")[0],
       dueDate: invoice.dueDate.toISOString().split("T")[0],
 

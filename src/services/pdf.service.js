@@ -3,14 +3,14 @@ const path = require("path");
 const Handlebars = require("handlebars");
 const puppeteer = require("puppeteer");
 
-export const getTaxSystem = (country)=> {
+const getTaxSystem = (country)=> {
   if (!country) return "";
   if (country === "India") return "GST";
   if (country === "United States" || country === "US") return "SALES";
   return "VAT";
 };
 
-export const getTaxLabel = (country) => {
+const getTaxLabel = (country) => {
   const sys = getTaxSystem(country);
   if (sys === "GST") return "GSTIN";
   if (sys === "VAT") return "VATIN";

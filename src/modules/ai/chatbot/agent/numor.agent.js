@@ -18,6 +18,28 @@ const {listAllUserExpenseItems} = require("../tools/listAllUserExpenseItems")
 const {getTotalInvoiceTax} = require("../tools/getTotalInvoiceTax")
 const {getAnalyticsForInvoice} = require("../tools/generalInvoiceAnalytics")
 const {getExpenseAnalytics} = require("../tools/generalExpenseAnalytics")
+const isCAConnectEnabled = process.env.FF_CA_CONNECT === "true";
+
+const enabledTools = [
+  getInvoices,
+  getExpenses,
+  listInvoiceItems,
+  getExpenseDetails,
+  listAllUserInvoiceItems,
+  listAllUserExpenseItems,
+  getTotalInvoiceTax,
+  getAnalyticsForInvoice,
+  getExpenseAnalytics,
+];
+
+if (isCAConnectEnabled) {
+  enabledTools.push(
+    fetchCASlots,
+    fetchCAReviews,
+    fetchCABookings,
+  );
+}
+
 const contextSchema = {
   type: "object",
   properties: {
@@ -35,18 +57,18 @@ const baseModel = new ChatGoogleGenerativeAI({
 });
 // ---- POSTGRES CHECKPOINTER ----
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, 
-  }
-});
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: {
+//     rejectUnauthorized: false, 
+//   }
+// });
 
-const checkpointer = new PostgresSaver(pool);
+// const checkpointer = new PostgresSaver(pool);
 
-// const checkpointer = PostgresSaver.fromConnString(
-//   process.env.DATABASE_URL,
-// );
+const checkpointer = PostgresSaver.fromConnString(
+  process.env.DATABASE_URL,
+);
 
 // IMPORTANT: run once on app startup
 async function initCheckpointer() {
@@ -58,20 +80,7 @@ async function initCheckpointer() {
 
 const numorAgent = createAgent({
   model: baseModel,
-  tools: [
-    getInvoices,
-    getExpenses,    
-    fetchCASlots,
-    fetchCAReviews,
-    fetchCABookings,
-    listInvoiceItems,
-    getExpenseDetails,
-    listAllUserInvoiceItems,
-    listAllUserExpenseItems,
-    getTotalInvoiceTax,
-    getAnalyticsForInvoice,
-    getExpenseAnalytics
-  ],
+  tools: enabledTools,
   systemPrompt: SYSTEM_PROMPT, 
   checkpointer,
   contextSchema,

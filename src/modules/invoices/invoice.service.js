@@ -1,7 +1,5 @@
 const prisma = require('../../config/database');
-const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
-const invoiceQueue = require('../../queues/invoice.queue');
 const qstashService = require("../../queues/invoice.qstash");
 const { is } = require('zod/locales');
 const storage = require('../../storage/storage.service');

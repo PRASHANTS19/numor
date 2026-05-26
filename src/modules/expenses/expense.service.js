@@ -1,5 +1,4 @@
 const prisma = require('../../config/database');
-const ocrService = require('../../services/ocr.service');
 const aiService = require('../ai/ai.service');
 const fs = require("fs");
 const storageService = require("../../storage/storage.service");

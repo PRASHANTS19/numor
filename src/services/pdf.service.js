@@ -20,6 +20,7 @@ const getTaxLabel = (country) => {
 
 // In CommonJS, __dirname already exists
 function generateInvoicePdf(invoice) {
+  // console.log("Generating PDF for invoice:", invoice);
   return (async () => {
     // src/services -> src/templates
     const templatePath = path.join(__dirname, "../templates/invoice.html");
@@ -30,10 +31,13 @@ function generateInvoicePdf(invoice) {
 
     const html = fs.readFileSync(templatePath, "utf-8");
     const template = Handlebars.compile(html);
-    const clientTaxLabel = getTaxLabel(invoice.client.country)
+    const clientTaxLabel = getTaxLabel(invoice.client.country);
+    const organizationLogoUrl = invoice.organizationLogoUrl || "";
+    // console.log("Using organization logo URL:", organizationLogoUrl);
     const htmlWithData = template({
       ...invoice,
       clientTaxLabel,
+      organizationLogoUrl,
       issueDate: invoice.issueDate.toISOString().split("T")[0],
       dueDate: invoice.dueDate.toISOString().split("T")[0],
 

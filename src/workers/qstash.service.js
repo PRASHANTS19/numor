@@ -27,7 +27,19 @@ exports.process = async (invoiceId, sendEmail) => {
     data: { pdfStatus: "PROCESSING" },
   });
 
-  const pdfBuffer = await pdfService.generateInvoicePdf(invoice);
+  let organizationLogoUrl = "";
+  if (invoice.organization?.logoUrl) {
+    try {
+      organizationLogoUrl = await storage.getSignedUrl(invoice.organization.logoUrl);
+    } catch (error) {
+      console.warn("Could not sign organization logo URL:", error.message);
+    }
+  }
+
+  const pdfBuffer = await pdfService.generateInvoicePdf({
+    ...invoice,
+    organizationLogoUrl,
+  });
 
   const path = `invoices/${invoice.orgId}/${invoice.invoiceNumber}.pdf`;
   const pdfKey = await storage.upload(path, pdfBuffer);
@@ -156,7 +168,19 @@ async function handleInvoice(invoiceId) {
 
   if (!invoice || invoice.pdfStatus === 'READY') return;
 
-  const pdfBuffer = await pdfService.generateInvoicePdf(invoice);
+  let organizationLogoUrl = "";
+  if (invoice.organization?.logoUrl) {
+    try {
+      organizationLogoUrl = await storage.getSignedUrl(invoice.organization.logoUrl);
+    } catch (error) {
+      console.warn("Could not sign organization logo URL:", error.message);
+    }
+  }
+
+  const pdfBuffer = await pdfService.generateInvoicePdf({
+    ...invoice,
+    organizationLogoUrl,
+  });
 
   const path = `invoices/${invoice.orgId}/${invoice.invoiceNumber}.pdf`;
   const pdfKey = await storage.upload(path, pdfBuffer);

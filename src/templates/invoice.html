@@ -30,6 +30,11 @@
          font-size: 20px;
          color: #f59e0b;
          }
+         .org-logo {
+         max-height: 72px;
+         max-width: 240px;
+         object-fit: contain;
+         }
          .invoice-title {
          text-align: right;
          }
@@ -149,7 +154,13 @@
       <div class="invoice-box">
          <!-- HEADER -->
          <div class="header">
-            <div class="logo">NUMOR</div>
+            <div class="logo">
+               {{#if organizationLogoUrl}}
+               <img src="{{organizationLogoUrl}}" alt="Organization Logo" class="org-logo" />
+               {{else}}
+               NUMOR
+               {{/if}}
+            </div>
             <div class="invoice-title">
                <h1>INVOICE</h1>
                <div class="meta">

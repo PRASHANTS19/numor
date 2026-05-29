@@ -57,18 +57,18 @@ const baseModel = new ChatGoogleGenerativeAI({
 });
 // ---- POSTGRES CHECKPOINTER ----
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, 
-  }
-});
+// const pool = new Pool({
+//   connectionString: process.env.DATABASE_URL,
+//   ssl: {
+//     rejectUnauthorized: false, 
+//   }
+// });
 
-const checkpointer = new PostgresSaver(pool);
+// const checkpointer = new PostgresSaver(pool);
 
-// const checkpointer = PostgresSaver.fromConnString(
-//   process.env.DATABASE_URL,
-// );
+const checkpointer = PostgresSaver.fromConnString(
+  process.env.DATABASE_URL,
+);
 
 // IMPORTANT: run once on app startup
 async function initCheckpointer() {

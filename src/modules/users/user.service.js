@@ -233,7 +233,11 @@ exports.inviteNewUser = async (email, organizationId, permissions) => {
     //   Team Numor
     //   https://numor.app
     // `;
-    await emailService.sendEmail(invitation.email, subject, html);
+    await emailService.sendEmail({
+      to: invitation.email,
+      subject,
+      html
+    });
 
     return {
       success : true,

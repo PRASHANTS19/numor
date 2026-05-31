@@ -23,9 +23,10 @@ async function register(req, res) {
     });
   } catch (error) {
     // res.clearCookie("access_token");
+    console.error("Registration error:", error);
     res.status(400).json({
       success: false,
-      message: error.message,
+      message: "Registration failed",
     });
   }
 }
@@ -54,9 +55,10 @@ async function login(req, res) {
     });
   } catch (error) {
     // res.clearCookie("access_token");
+    console.error("Login error:", error.message);
     res.status(401).json({
       success: false,
-      message: error.message,
+      message: "Invalid email or password",
     });
   }
 }

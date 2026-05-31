@@ -24,6 +24,7 @@ allowedOrigins = [
     'https://id-preview--15482be5-6c09-4a46-b5df-d1f1337d4fbb.lovable.app',
     'https://preview--numor.lovable.app',
     'https://15482be5-6c09-4a46-b5df-d1f1337d4fbb.lovableproject.com',
+    'http://localhost:8080'
 ];
 app.use(cors(
     {

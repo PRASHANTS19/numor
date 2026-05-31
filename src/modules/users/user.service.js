@@ -1,4 +1,5 @@
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 const prisma = require('../../config/database');
 const storageService = require('../../storage/storage.service');
 const emailService = require('../../services/email.service');

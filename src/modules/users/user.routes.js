@@ -2,6 +2,7 @@ const router = require('express').Router();
 const auth = require('../../middlewares/auth.middleware');
 const role = require('../../middlewares/role.middleware');
 const validate = require('../../middlewares/validate.middleware');
+const { requirePermission, requireOrgOwner } = require('../../middlewares/permission.middleware');
 const CAcontroller = require('../ca-connect/ca-profile/caProfile.controller');
 const controller = require('./user.controller');
 const validator = require('./user.validator');
@@ -15,28 +16,36 @@ router.get('/me',
     controller.getCurrentUser
 );
 router.post('/widgets',
+    requirePermission('dashboard', 'write'),
     controller.saveWidgets
 );
 // router.delete('/widgets/delete',
 //     controller.deleteWidget
 // );
 router.put('/update',
+    requirePermission('settings', 'write'),
     validate(validator.updateUserSchema),
     controller.updateUser
 );
 router.post(
     '/profilePhoto',
+    requirePermission('settings', 'write'),
     caUpload.single("file"),
     controller.uploadProfilePhoto
 );
 router.get(
     '/profilePhoto',
+    requirePermission('settings', 'read'),
     controller.getProfilePhoto
 );
 router.delete(
     '/profilePhoto',
+    requirePermission('settings', 'write'),
     controller.deleteProfilePhoto
 );
+
+router.post('/inviteNewUser', requireOrgOwner, controller.inviteNewUser);
+
 router.get(
     '/listCAs',
     CAcontroller.listCAs);

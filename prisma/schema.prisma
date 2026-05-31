@@ -27,6 +27,7 @@ model Organization {
   invoices      InvoiceBill[]
   kpis          KpiSnapshot[]
   users         User[]
+  userInvitations UserInvitation[]
 
   @@map("organizations")
 }
@@ -45,13 +46,15 @@ model User {
   googleId               String?       @unique
   linkedinId String? @unique
   role                   Role          @default(SME_USER)
+  isOrgOwner             Boolean       @default(false)
+  permissions            Json?
   isActive               Boolean       @default(true)
   createdAt              DateTime      @default(now())
   updatedAt              DateTime      @updatedAt
   resetPasswordExpiresAt DateTime?
   resetPasswordToken     String?
   isEmailVerified        Boolean       @default(false)
-   widgets                String[]
+  widgets                String[]
   caBookings             CABooking[]
   caProfile              CAProfile?
   caReviews              CAReview[]
@@ -63,6 +66,17 @@ model User {
   organization           Organization  @relation(fields: [orgId], references: [id])
 
   @@map("users")
+}
+
+model UserInvitation {
+  id                    BigInt @id @default(autoincrement())
+  organizationId        BigInt
+  email                 String   @unique
+  token                 String   @unique
+  permissions           Json
+  expiresAt             DateTime
+  createdAt             DateTime @default(now())
+  organization          Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
 
 model CustomFieldDefinition {

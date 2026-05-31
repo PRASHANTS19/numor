@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const prisma = require('../../config/database');
 const storageService = require('../../storage/storage.service');
+const emailService = require('../../services/email.service');
 
 exports.createUser = async (admin, data) => {
   const { email, name, userType, password } = data;
@@ -180,6 +181,71 @@ exports.deleteProfilePhoto = async (user) => {
   });
 
 };
+
+exports.inviteNewUser = async (email, organizationId, permissions) => {
+
+  const token = crypto.randomBytes(32).toString('hex'); // 1. Generate a cryptographically secure random token
+
+  const expiresAt = new Date();
+  expiresAt.setHours(expiresAt.getHours() + 24);
+
+  try{
+    const invitation = await prisma.userInvitation.upsert({
+      where: { email },
+      update: {
+        token,
+        permissions,
+        expiresAt,
+        createdAt: new Date()
+      },
+      create: {
+        email,
+        organizationId: BigInt(organizationId),
+        token,
+        permissions,
+        expiresAt
+      }
+    });
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://numor.app';
+    const magicLink = `${frontendUrl}/accept-invitation?token=${invitation.token}`;
+
+    const subject = "You've been invited to join Numor";
+    const html = `
+      <p>Hi,</p>
+      <p>You have been invited to join <strong>Numor</strong>.</p>
+      <p>Click the link below to accept the invitation and set up your account:</p>
+      <p><a href="${magicLink}">Accept Invitation</a></p>
+      <br/>
+      <p>
+        Thanks,<br/>
+        <strong>Team Numor</strong><br/>
+        <a href="https://numor.app">https://numor.app</a>
+      </p>
+    `;
+    // const text = `
+    //   Hi,
+    //   You have been invited to join Numor.
+    //   Click the link below to accept the invitation and set up your account:
+    //   ${magicLink}
+    //   Thanks,
+    //   Team Numor
+    //   https://numor.app
+    // `;
+    await emailService.sendEmail(invitation.email, subject, html);
+
+    return {
+      success : true,
+      message: "Invitation sent successfully"
+    };
+    
+    
+  }
+  catch (err) {
+    console.error('Error creating/updating user invitation:', err);
+    throw new Error('Failed to create user invitation');
+  }
+}
 
 const ALLOWED_WIDGET_NAMES = new Set([
   "revenue_vs_time",

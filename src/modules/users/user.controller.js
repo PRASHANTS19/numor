@@ -94,6 +94,24 @@ exports.deleteProfilePhoto = async (req, res, next) => {
   }
 }
 
+exports.inviteNewUser = async (req, res, next) => {
+
+  const { email, organizationId, permissions } = req.body;
+
+  if (!email || !organizationId || !permissions) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  try {
+    const result = await service.inviteNewUser(email, organizationId, permissions);
+    res.json({ success: result.success, message: result.message });
+  } catch (err) {
+    next(err);
+  }
+
+
+}
+
 
 exports.saveWidgets = async (req, res, next) => {
   try {

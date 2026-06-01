@@ -1,7 +1,8 @@
 const authService = require("./auth.service");
 const { deleteChatHistory } = require("../ai/chatbot/chat.service")
+const { sendResponse } = require("../../utils/response");
 
-async function register(req, res) {
+async function register(req, res, next) {
   try {
     const { token, user } = await authService.registerUser(req.body);
 
@@ -13,8 +14,7 @@ async function register(req, res) {
     //   maxAge: 7 * 24 * 60 * 60 * 1000,
     // });
 
-    res.status(201).json({
-      success: true,
+    return sendResponse(res, 201, {
       message: "User registered successfully",
       data: {
         token,
@@ -24,14 +24,13 @@ async function register(req, res) {
   } catch (error) {
     // res.clearCookie("access_token");
     console.error("Registration error:", error);
-    res.status(400).json({
-      success: false,
-      message: "Registration failed",
-    });
+    error.statusCode = error.statusCode || 400;
+    error.message = error.message || "Registration failed";
+    next(error);
   }
 }
 
-async function login(req, res) {
+async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
@@ -45,8 +44,7 @@ async function login(req, res) {
     //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     // });
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Login successful",
       data: {
         token,
@@ -56,14 +54,13 @@ async function login(req, res) {
   } catch (error) {
     // res.clearCookie("access_token");
     console.error("Login error:", error.message);
-    res.status(401).json({
-      success: false,
-      message: "Invalid email or password",
-    });
+    const authError = new Error("Invalid email or password");
+    authError.statusCode = 401;
+    next(authError);
   }
 }
 
-async function logout(req, res) {
+async function logout(req, res, next) {
   // res.clearCookie("access_token", {
   //   httpOnly: true,
   //   secure: process.env.NODE_ENV === "production",
@@ -73,17 +70,14 @@ async function logout(req, res) {
   try {
     const result = await deleteChatHistory(req.user);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Logout successful. Chat history cleared.",
-      result
+      data: { result }
     });
   } catch (error) {
     console.error("Logout error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Logout failed",
-    });
+    error.message = error.message || "Logout failed";
+    next(error);
   }
 }
 
@@ -99,8 +93,7 @@ async function googleLogin(req, res, next) {
     //   // domain: process.env.NODE_ENV === "production" ? ".numor.app" : "localhost",
     //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     // });
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Google login successful",
       data: {
         token,
@@ -123,8 +116,7 @@ async function linkedinLogin(req, res, next) {
       user_type_for_signup
     );
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "LinkedIn login successful",
       data: {
         token,
@@ -147,10 +139,9 @@ async function googleLocalStorageBasedLogin(req, res, next) {
     }
     catch (err) {
       console.error("Failed to parse state parameter:", err);
-      return res.status(400).json({
-        success: false,
-        message: "Invalid state parameter",
-      });
+      err.statusCode = 400;
+      err.message = "Invalid state parameter";
+      return next(err);
     }
   }
 
@@ -183,96 +174,82 @@ async function googleLocalStorageBasedLogin(req, res, next) {
 
 }
 
-async function verifyEmail(req, res) {
+async function verifyEmail(req, res, next) {
   try {
     const { email } = req.body;
 
     const result = await authService.verifyEmail(email);
 
-    res.json({
+    return sendResponse(res, 200, {
       success: result.success,
-      result
+      data: { result }
     });
   } catch (error) {
     console.log("Email verification error:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 }
 
-async function verifyEmailOtp(req, res) {
+async function verifyEmailOtp(req, res, next) {
   try {
     const { email, code } = req.body;
 
     const result = await authService.verifyEmailOTP(email, code);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Verification Successful",
-      result
+      data: { result }
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 }
 
-async function forgetPassword(req, res) {
+async function forgetPassword(req, res, next) {
   try {
     const { email } = req.body;
 
     const result = await authService.forgetPassword(email);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Verification code sent to email",
-      result
+      data: { result }
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 }
 
-async function verifyCode(req, res) {
+async function verifyCode(req, res, next) {
   try {
     const { email, code } = req.body;
 
     await authService.verifyResetCode(email, code);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Code verified"
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 }
 
-async function resetUserPassword(req, res) {
+async function resetUserPassword(req, res, next) {
   try {
     const { email, code, newPassword } = req.body;
 
     await authService.resetPassword(email, code, newPassword);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Password updated successfully"
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 }
 

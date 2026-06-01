@@ -26,11 +26,10 @@ async function getAuthorizationUser(req) {
   return user;
 }
 
-function deny(res, message = 'Permission denied') {
-  return res.status(403).json({
-    success: false,
-    message,
-  });
+function deny(next, message = 'Permission denied') {
+  const error = new Error(message);
+  error.statusCode = 403;
+  return next(error);
 }
 
 function requirePermission(resource, action) {
@@ -43,7 +42,7 @@ function requirePermission(resource, action) {
       const user = await getAuthorizationUser(req);
 
       if (!user || !user.isActive) {
-        return deny(res, 'User is inactive or not found');
+        return deny(next, 'User is inactive or not found');
       }
 
       if (FULL_ACCESS_ROLES.has(user.role) || user.isOrgOwner) {
@@ -56,7 +55,7 @@ function requirePermission(resource, action) {
         (action === 'read' && resourcePermissions?.write === true);
 
       if (!allowed) {
-        return deny(res);
+        return deny(next);
       }
 
       return next();
@@ -76,14 +75,14 @@ function requireOrgOwner(req, res, next) {
       const user = await getAuthorizationUser(req);
 
       if (!user || !user.isActive) {
-        return deny(res, 'User is inactive or not found');
+        return deny(next, 'User is inactive or not found');
       }
 
       if (user.role === 'ADMIN' || user.isOrgOwner) {
         return next();
       }
 
-      return deny(res, 'Only organization owners can perform this action');
+      return deny(next, 'Only organization owners can perform this action');
     })
     .catch(next);
 }

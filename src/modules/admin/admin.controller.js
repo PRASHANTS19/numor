@@ -1,4 +1,5 @@
 const adminService = require("./admin.service");
+const { sendResponse } = require("../../utils/response");
 
 
 exports.approveCAProfileUpdate = async (req, res, next) => {
@@ -7,8 +8,7 @@ exports.approveCAProfileUpdate = async (req, res, next) => {
 
     const result = await adminService.approveCAProfileUpdate(caProfileId);
 
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "CA profile update approved successfully",
       data: result
     });
@@ -23,8 +23,7 @@ exports.rejectCAProfileUpdate = async (req, res, next) => {
     const { caProfileId } = req.params; 
     const result = await adminService.rejectCAProfileUpdate(caProfileId);
 
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "CA profile update rejected successfully",
       data: result
     });
@@ -37,8 +36,7 @@ exports.rejectCAProfileUpdate = async (req, res, next) => {
 exports.listPendingCARequest = async (req, res, next) => {
   try {
     const pendingRequests = await adminService.listPendingCARequest();
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: pendingRequests
     });
   } catch (err) {
@@ -50,8 +48,7 @@ exports.getPendingRequestDetails = async (req, res, next) => {
   try {
     const { pendingId } = req.params;
     const details = await adminService.getPendingRequestDetails(pendingId);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: details
     });
   } catch (err) {
@@ -63,8 +60,7 @@ exports.listRequestsByStatus = async (req, res, next) => {
   try {
     const { status } = req.query;
     const requests = await adminService.listRequestsByStatus(status);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: requests
     });
   } catch (err) {
@@ -75,8 +71,7 @@ exports.listRequestsByStatus = async (req, res, next) => {
 exports.getPendingCAs = async (req, res, next) => {
   try {
     const pendingCAs = await adminService.getPendingCAs();
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: pendingCAs
     });
   } catch (err) {
@@ -88,8 +83,7 @@ exports.getCAForReview = async (req, res, next) => {
   try {
     const { caId } = req.params;
     const caDetails = await adminService.getCAForReview(caId);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: caDetails
     });
   } catch (err) {
@@ -101,8 +95,7 @@ exports.approveCAProfile = async (req, res, next) => {
   try {
     const { caId } = req.params;
     const result = await adminService.approveCAProfile(caId);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "CA profile approved successfully",
       data: result
     });
@@ -115,8 +108,7 @@ exports.rejectCAProfile = async (req, res, next) => {
   try {
     const { caId, comment } = req.params;
     const result = await adminService.rejectCAProfile(caId, comment);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
         message: "CA profile rejected successfully",
         data: result
     });
@@ -128,8 +120,7 @@ exports.rejectCAProfile = async (req, res, next) => {
 exports.getMarketplaceCAs = async (req, res, next) => {
   try {
     const cas = await adminService.getMarketplaceCAs();
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: cas
     });
   } catch (err) {
@@ -142,8 +133,7 @@ exports.getProfileComparison = async (req, res, next) => {
     const caId = req.params.caId;
     const result = await adminService.getProfileComparison(req.user, caId);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: result
     });
 
@@ -155,8 +145,7 @@ exports.getProfileComparison = async (req, res, next) => {
 exports.getCAProfileCounts = async (req, res, next) => {
   try {
     const counts = await adminService.getCAProfileCounts();
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: counts
     });
   } catch (err) {
@@ -168,8 +157,7 @@ exports.listCAProfiles = async (req, res, next) => {
   try {
     const { tab = 'underReview', page = 1, limit = 20 } = req.query;
     const result = await adminService.listCAProfiles(tab, page, limit);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       data: result
     });
   }
@@ -183,8 +171,7 @@ exports.suspendCAProfile = async (req, res, next) => {
     const { caProfileId } = req.params;
     const { comment } = req.body;
     const result = await adminService.suspendCAProfile(caProfileId, comment);
-    res.status(200).json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "CA profile suspended successfully"
     });
   } catch (err) {

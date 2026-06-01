@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const requireFeature = require('../middlewares/featureFlag.middleware');
+const { sendResponse } = require('../utils/response');
 // Module routes
 const authRoutes = require('../modules/auth/auth.routes');
 const userRoutes = require('../modules/users/user.routes');
@@ -23,7 +24,10 @@ const adminRoutes = require("../modules/admin/admin.routes");
 
 // Health check
 router.get('/health', (req, res) => {
-  res.json({ status: 'Numor API is healthy 🚀' });
+  return sendResponse(res, 200, {
+    message: 'Numor API is healthy',
+    data: { status: 'healthy' },
+  });
 });
 
 // Mount modules

@@ -377,7 +377,8 @@ exports.getCAProfileCounts = async () => {
             }
     } catch (error) {
         console.error('Error fetching CA profile counts:', error);
-        res.status(500).json({ success: false, message: 'Failed to fetch counts' });
+        error.message = error.message || 'Failed to fetch counts';
+        throw error;
     }
 }
 
@@ -386,7 +387,11 @@ exports.listCAProfiles = async (tab, page, limit) => {
     const take = Number(limit);
 
     const whereClause = getWhereClause(tab);
-    if (!whereClause) return res.status(400).json({ success: false, error: 'Invalid tab' });
+    if (!whereClause) {
+        const error = new Error('Invalid tab');
+        error.statusCode = 400;
+        throw error;
+    }
 
     const includeClause = getIncludeClause(tab);
     const selectClause = getSelectClause(tab);

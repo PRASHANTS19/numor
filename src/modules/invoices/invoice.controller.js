@@ -1,69 +1,69 @@
 // invoice.controller.js
 const { ca } = require('zod/locales');
 const invoiceService = require('./invoice.service');
+const { sendResponse } = require('../../utils/response');
 
 
-exports.previewInvoice = async function (req, res) {
-  // const filePath = req.file.path;
-  const result = await invoiceService.previewInvoiceAI(req.file);
+exports.previewInvoice = async function (req, res, next) {
+  try {
+    // const filePath = req.file.path;
+    const result = await invoiceService.previewInvoiceAI(req.file);
 
-  res.json({
-    success: true,
-    data: result,
-  });
+    return sendResponse(res, 200, { data: result });
+  } catch (err) {
+    next(err);
+  }
 }
 
-exports.confirmAndSaveInvoice = async function (req, res) {
+exports.confirmAndSaveInvoice = async function (req, res, next) {
   try {
     const payload = req.body;
     const user = req.user; // from auth middleware
 
     const invoice = await invoiceService.saveInvoiceFromPreview(user, payload);
 
-    res.json({ success: true, invoice });
+    return sendResponse(res, 200, { data: { invoice } });
   } catch (err) {
     console.error('Error in confirmOCR:', err);
-    res.status(400).json({
-      success: false,
-      message: err.message,
-    });
+    err.statusCode = err.statusCode || 400;
+    next(err);
   }
 };
 
-exports.listInvoices = async function (req, res) {
+exports.listInvoices = async function (req, res, next) {
   try {
     const { page, limit, startDate, endDate } = req.query;
     const user = req.user;
     const invoices = await invoiceService.listInvoices(user, Number(page), Number(limit), startDate, endDate);
-    res.json({ success: true, data: invoices });
+    return sendResponse(res, 200, { data: invoices });
   } catch (err) {
     console.error('Error in listInvoices:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 }
 
-exports.listCustomFields = async function (req, res) {
+exports.listCustomFields = async function (req, res, next) {
   try {
     const data = await invoiceService.listCustomFieldDefinitions(req.user);
-    return res.json({ success: true, data });
+    return sendResponse(res, 200, { data });
   } catch (err) {
     console.error('Error in listCustomFields:', err);
-    return res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 }
 
-exports.listInvoiceProduct = async function (req, res) {
+exports.listInvoiceProduct = async function (req, res, next) {
   try {
     const { page, limit } = req.query;
     const products = await invoiceService.listInvoiceProducts(req.params.id, Number(page), Number(limit));
-    res.json({ success: true, data: products });
+    return sendResponse(res, 200, { data: products });
   } catch (err) {
     console.error('Error in listInvoiceProduct:', err);
-    res.status(500).json({ success: false, message: err.message });
+    next(err);
   }
 }
 
-exports.confirmAndUpdateInvoice = async function (req, res) {
+exports.confirmAndUpdateInvoice = async function (req, res, next) {
   try {
     const payload = req.body;
     const user = req.user; // from auth middleware
@@ -71,20 +71,17 @@ exports.confirmAndUpdateInvoice = async function (req, res) {
 
     const invoice = await invoiceService.updateInvoice(user, id, payload);
 
-    return res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: invoice
     });
   } catch (err) {
     console.error('Error in confirmAndUpdateInvoice:', err);
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
+    err.statusCode = err.statusCode || 400;
+    next(err);
   }
 };
 
-exports.confirmAndCreateInvoice = async function (req, res) {
+exports.confirmAndCreateInvoice = async function (req, res, next) {
   try {
     const user = req.user;
     const payload = req.body;
@@ -92,37 +89,31 @@ exports.confirmAndCreateInvoice = async function (req, res) {
     const sendEmail = req.query.sendEmail === "true";
     const invoice = await invoiceService.confirmAndCreateInvoice(user, payload, sendEmail);
 
-    return res.status(201).json({
-      success: true,
+    return sendResponse(res, 201, {
       data: invoice
     });
   } catch (err) {
     console.error('Error in confirmAndCreateInvoice:', err);
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
+    err.statusCode = err.statusCode || 400;
+    next(err);
   }
 };
 
 
-exports.getInvoice = async (req, res) => {
+exports.getInvoice = async (req, res, next) => {
   try {
     const invoice = await invoiceService.getInvoice(req.user, req.params.id);
-    return res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: invoice
     });
   } catch (err) {
     console.error('Error in getInvoice:', err);
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
+    err.statusCode = err.statusCode || 400;
+    next(err);
   }
 };
 
-exports.getInvoicePdf = async (req, res) => {
+exports.getInvoicePdf = async (req, res, next) => {
   try {
     const result = await invoiceService.getSignedPdfUrl(
       req.user,
@@ -141,12 +132,13 @@ exports.getInvoicePdf = async (req, res) => {
     };
 
     const httpStatus = statusMap[result.status] || 500;
-    return res.status(httpStatus).json(result);
-  } catch (err) {
-    return res.status(err.statusCode || 500).json({
-      success: false,
-      message: err.message
+    return sendResponse(res, httpStatus, {
+      success: httpStatus < 400,
+      message: result.message || "",
+      data: result,
     });
+  } catch (err) {
+    next(err);
   }
 };
 
@@ -159,27 +151,24 @@ exports.streamInvoicePdfStatus = (req, res) => {
   });
 };
 
-exports.deleteInvoice = async (req, res) => {
+exports.deleteInvoice = async (req, res, next) => {
   try {
     const user = req.user;
     const id = req.params.id;
 
     const result = await invoiceService.deleteInvoice(user, id);
 
-    return res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: result
     });
   } catch (err) {
     console.error('Error in deleteInvoice:', err);
-    return res.status(400).json({
-      success: false,
-      message: err.message
-    });
+    err.statusCode = err.statusCode || 400;
+    next(err);
   }
 };
 
-exports.exportInvoices = async (req, res) => {
+exports.exportInvoices = async (req, res, next) => {
   try {
     const { startDate, endDate, format = "csv", includeItems } = req.query;
 
@@ -215,6 +204,6 @@ exports.exportInvoices = async (req, res) => {
 
   } catch (err) {
     console.error("Export Invoice Error:", err);
-    res.status(500).json({ error: err.message });
+    next(err);
   }
 };

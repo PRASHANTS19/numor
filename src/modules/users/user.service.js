@@ -208,7 +208,7 @@ exports.inviteNewUser = async (email, organizationId, permissions) => {
       }
     });
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://numor.app';
+    const frontendUrl = process.env.FRONTEND_URL_PRODUCTION || 'https://numor.app';
     const magicLink = `${frontendUrl}/accept-invitation?token=${invitation.token}`;
 
     const subject = "You've been invited to join Numor";

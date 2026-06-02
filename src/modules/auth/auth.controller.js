@@ -276,6 +276,43 @@ async function resetUserPassword(req, res) {
   }
 }
 
+async function verifyInvitation(req, res) {
+  try {
+    const { token } = req.body;
+
+    const invitation = await authService.verifyInvitation(token);
+
+    res.json({
+      success: true,
+      message: "Invitation is valid",
+      data: invitation,
+    });
+  } catch (error) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
+async function acceptInvitation(req, res) {
+  try {
+    const result = await authService.acceptInvitation(req.body);
+
+    res.status(201).json({
+      success: true,
+      message: "Invitation accepted successfully",
+      data: result,
+    });
+  } catch (error) {
+    console.error("Accept invitation error:", error.message);
+    res.status(400).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -285,6 +322,8 @@ module.exports = {
   forgetPassword,
   resetUserPassword,
   verifyCode,
+  verifyInvitation,
+  acceptInvitation,
   verifyEmail,
   verifyEmailOtp,
   linkedinLogin

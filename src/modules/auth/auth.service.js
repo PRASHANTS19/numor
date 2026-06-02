@@ -529,6 +529,137 @@ async function resetPassword(email, code, newPassword) {
     return { success: true };
 }
 
+async function verifyInvitation(token) {
+    if (!token) {
+        throw new Error("Invitation token is required");
+    }
+
+    const invitation = await prisma.userInvitation.findUnique({
+        where: { token },
+        include: {
+            organization: {
+                select: {
+                    name: true,
+                },
+            },
+        },
+    });
+
+    if (!invitation) {
+        throw new Error("Invalid invitation");
+    }
+
+    if (new Date() > invitation.expiresAt) {
+        await prisma.userInvitation.delete({
+            where: { id: invitation.id },
+        });
+        throw new Error("Invitation has expired");
+    }
+
+    const existingUser = await prisma.user.findUnique({
+        where: { email: invitation.email },
+        select: { id: true },
+    });
+
+    if (existingUser) {
+        throw new Error("User with this email already exists");
+    }
+
+    return {
+        email: invitation.email,
+        organizationName: invitation.organization?.name,
+        expiresAt: invitation.expiresAt,
+    };
+}
+
+async function acceptInvitation(data) {
+    const { token, name, password, phone } = data;
+
+    if (!token) {
+        throw new Error("Invitation token is required");
+    }
+
+    if (!name) {
+        throw new Error("Name is required");
+    }
+
+    if (!password) {
+        throw new Error("Password is required");
+    }
+
+    const invitation = await prisma.userInvitation.findUnique({
+        where: { token },
+    });
+
+    if (!invitation) {
+        throw new Error("Invalid invitation");
+    }
+
+    if (new Date() > invitation.expiresAt) {
+        await prisma.userInvitation.delete({
+            where: { id: invitation.id },
+        });
+        throw new Error("Invitation has expired");
+    }
+
+    const existingUser = await prisma.user.findUnique({
+        where: { email: invitation.email },
+        select: { id: true },
+    });
+
+    if (existingUser) {
+        throw new Error("User with this email already exists");
+    }
+
+    const sessionId = crypto.randomUUID();
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const newUser = await prisma.$transaction(async (tx) => {
+        const user = await tx.user.create({
+            data: {
+                orgId: invitation.organizationId,
+                name,
+                email: invitation.email,
+                phone,
+                passwordHash,
+                authProvider: "LOCAL",
+                userType: "INTERNAL",
+                role: "SME_USER",
+                isOrgOwner: false,
+                permissions: invitation.permissions,
+                isEmailVerified: true,
+            },
+            include: {
+                organization: true,
+            },
+        });
+
+        await tx.userInvitation.delete({
+            where: { id: invitation.id },
+        });
+
+        return user;
+    });
+
+    const tokenPayload = {
+        userId: newUser.id.toString(),
+        orgId: newUser.orgId.toString(),
+        role: newUser.role,
+        userType: newUser.userType,
+        sessionId,
+    };
+
+    const authToken = signToken(tokenPayload);
+
+    return {
+        token: authToken,
+        user: convertBigIntToString({
+            ...newUser,
+            passwordHash: undefined,
+        }),
+    };
+}
+
 async function verifyEmail(email) {
     if (!email) {
         throw new Error("Email is required");
@@ -616,6 +747,8 @@ module.exports = {
     forgetPassword,
     resetPassword,
     verifyResetCode,
+    verifyInvitation,
+    acceptInvitation,
     verifyEmail,
     verifyEmailOTP,
     linkedinAuth

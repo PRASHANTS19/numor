@@ -46,6 +46,14 @@ router.post(
     controller.resetUserPassword
 )
 router.post(
+    '/verifyInvitation',
+    controller.verifyInvitation
+)
+router.post(
+    '/acceptInvitation',
+    controller.acceptInvitation
+)
+router.post(
     '/verifyEmail',
     controller.verifyEmail
 )

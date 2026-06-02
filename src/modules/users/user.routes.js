@@ -23,24 +23,20 @@ router.post('/widgets',
 //     controller.deleteWidget
 // );
 router.put('/update',
-    requirePermission('settings', 'write'),
     validate(validator.updateUserSchema),
     controller.updateUser
 );
 router.post(
     '/profilePhoto',
-    requirePermission('settings', 'write'),
     caUpload.single("file"),
     controller.uploadProfilePhoto
 );
 router.get(
     '/profilePhoto',
-    requirePermission('settings', 'read'),
     controller.getProfilePhoto
 );
 router.delete(
     '/profilePhoto',
-    requirePermission('settings', 'write'),
     controller.deleteProfilePhoto
 );
 

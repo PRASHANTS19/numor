@@ -44,6 +44,8 @@ router.post('/inviteNewUser', requireOrgOwner, controller.inviteNewUser);
 
 router.get('/invitations', requireOrgOwner, controller.invitations);
 
+router.get('/subAccounts', requireOrgOwner, controller.subAccounts);
+
 router.get(
     '/listCAs',
     CAcontroller.listCAs);

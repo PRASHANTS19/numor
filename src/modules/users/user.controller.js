@@ -125,6 +125,19 @@ exports.invitations = async (req, res, next) => {
   }
 };
 
+exports.subAccounts = async (req, res, next) => {
+  try {
+    const users = await service.listSubAccounts(req.user.orgId);
+
+    res.json({
+      success: true,
+      data: users,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 exports.saveWidgets = async (req, res, next) => {
   try {

@@ -279,6 +279,31 @@ exports.listInvitations = async (organizationId) => {
   }));
 };
 
+exports.listSubAccounts = async (organizationId) => {
+  return prisma.user.findMany({
+    where: {
+      orgId: BigInt(organizationId),
+      isOrgOwner: false,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phone: true,
+      userType: true,
+      role: true,
+      isActive: true,
+      isOrgOwner: true,
+      permissions: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+};
+
 const ALLOWED_WIDGET_NAMES = new Set([
   "revenue_vs_time",
   "expense_vs_time",

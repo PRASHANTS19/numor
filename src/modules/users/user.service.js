@@ -65,6 +65,8 @@ exports.getUser = async (admin, userId) => {
       isActive: true,
       createdAt: true,
       role: true,
+      isOrgOwner: true,
+      permissions: true,
       widgets: true,
       customFieldDefinitions: {
         select: {

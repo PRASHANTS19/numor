@@ -112,9 +112,9 @@ exports.inviteNewUser = async (req, res, next) => {
 
 }
 
-exports.pendingInvitations = async (req, res, next) => {
+exports.invitations = async (req, res, next) => {
   try {
-    const invitations = await service.listPendingInvitations(req.user.orgId);
+    const invitations = await service.listInvitations(req.user.orgId);
 
     res.json({
       success: true,

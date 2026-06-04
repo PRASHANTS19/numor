@@ -252,7 +252,7 @@ exports.inviteNewUser = async (email, organizationId, permissions) => {
   }
 }
 
-exports.listPendingInvitations = async (organizationId) => {
+exports.listInvitations = async (organizationId) => {
   const invitations = await prisma.userInvitation.findMany({
     where: {
       organizationId: BigInt(organizationId),

@@ -530,10 +530,6 @@ async function resetPassword(email, code, newPassword) {
 }
 
 async function verifyInvitation(token) {
-    if (!token) {
-        throw new Error("Invitation token is required");
-    }
-
     const invitation = await prisma.userInvitation.findUnique({
         where: { token },
         include: {
@@ -572,20 +568,8 @@ async function verifyInvitation(token) {
     };
 }
 
-async function acceptInvitation(data) {
+async function createSubAccount(data) {
     const { token, name, password, phone } = data;
-
-    if (!token) {
-        throw new Error("Invitation token is required");
-    }
-
-    if (!name) {
-        throw new Error("Name is required");
-    }
-
-    if (!password) {
-        throw new Error("Password is required");
-    }
 
     const invitation = await prisma.userInvitation.findUnique({
         where: { token },
@@ -748,7 +732,7 @@ module.exports = {
     resetPassword,
     verifyResetCode,
     verifyInvitation,
-    acceptInvitation,
+    createSubAccount,
     verifyEmail,
     verifyEmailOTP,
     linkedinAuth

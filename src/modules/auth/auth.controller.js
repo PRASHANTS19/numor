@@ -280,6 +280,13 @@ async function verifyInvitation(req, res) {
   try {
     const { token } = req.body;
 
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: "Invitation token is required",
+      });
+    }
+
     const invitation = await authService.verifyInvitation(token);
 
     res.json({
@@ -295,17 +302,31 @@ async function verifyInvitation(req, res) {
   }
 }
 
-async function acceptInvitation(req, res) {
+async function createSubAccount(req, res) {
   try {
-    const result = await authService.acceptInvitation(req.body);
+    const { token, name, password, phone } = req.body;
+
+    if (!token || !name || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Token, name and password are required",
+      });
+    }
+
+    const result = await authService.createSubAccount({
+      token,
+      name,
+      password,
+      phone,
+    });
 
     res.status(201).json({
       success: true,
-      message: "Invitation accepted successfully",
+      message: "Sub-account created successfully",
       data: result,
     });
   } catch (error) {
-    console.error("Accept invitation error:", error.message);
+    console.error("Create sub-account error:", error.message);
     res.status(400).json({
       success: false,
       message: error.message,
@@ -323,7 +344,7 @@ module.exports = {
   resetUserPassword,
   verifyCode,
   verifyInvitation,
-  acceptInvitation,
+  createSubAccount,
   verifyEmail,
   verifyEmailOtp,
   linkedinLogin

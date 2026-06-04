@@ -50,8 +50,8 @@ router.post(
     controller.verifyInvitation
 )
 router.post(
-    '/acceptInvitation',
-    controller.acceptInvitation
+    '/createSubAccount',
+    controller.createSubAccount
 )
 router.post(
     '/verifyEmail',

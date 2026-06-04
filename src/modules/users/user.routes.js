@@ -42,6 +42,8 @@ router.delete(
 
 router.post('/inviteNewUser', requireOrgOwner, controller.inviteNewUser);
 
+router.get('/pendingInvitations', requireOrgOwner, controller.pendingInvitations);
+
 router.get(
     '/listCAs',
     CAcontroller.listCAs);

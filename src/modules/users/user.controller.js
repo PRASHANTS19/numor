@@ -112,6 +112,19 @@ exports.inviteNewUser = async (req, res, next) => {
 
 }
 
+exports.pendingInvitations = async (req, res, next) => {
+  try {
+    const invitations = await service.listPendingInvitations(req.user.orgId);
+
+    res.json({
+      success: true,
+      data: invitations,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 exports.saveWidgets = async (req, res, next) => {
   try {

@@ -252,6 +252,31 @@ exports.inviteNewUser = async (email, organizationId, permissions) => {
   }
 }
 
+exports.listPendingInvitations = async (organizationId) => {
+  const invitations = await prisma.userInvitation.findMany({
+    where: {
+      organizationId: BigInt(organizationId),
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    select: {
+      id: true,
+      email: true,
+      permissions: true,
+      expiresAt: true,
+      createdAt: true,
+    },
+  });
+
+  const now = new Date();
+
+  return invitations.map((invitation) => ({
+    ...invitation,
+    isExpired: invitation.expiresAt < now,
+  }));
+};
+
 const ALLOWED_WIDGET_NAMES = new Set([
   "revenue_vs_time",
   "expense_vs_time",

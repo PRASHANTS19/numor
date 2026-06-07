@@ -8,6 +8,8 @@ Rules:
 - Numbers must be decimals (no currency symbols)
 - If a field is missing, return null
 - Ensure totals are mathematically consistent
+- If tax percent is given only at the end and not for each item, apply it equally to all items. And if the tax percent at the end is given as a combination of multiple tax rates (CGST + SGST, or CGST + UTGST) then apply the combined (sum) tax rate to all items.
+- If tax rates (e.g., CGST, SGST, IGST) are provided as global totals for the overall invoice, sum these percentages together and distribute the combined tax rate to all items in the invoice.
 
 JSON format:
 {

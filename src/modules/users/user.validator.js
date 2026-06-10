@@ -37,4 +37,8 @@ exports.updateUserSchema = z.object({
 
 exports.updateStatusSchema = z.object({
     isActive: z.boolean()
-})
+});
+
+exports.updatePermissionsSchema = z.object({
+    permissions: z.any() // JSON object representing permissions
+});

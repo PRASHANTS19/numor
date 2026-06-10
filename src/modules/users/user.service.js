@@ -304,6 +304,35 @@ exports.listSubAccounts = async (organizationId) => {
   });
 };
 
+exports.updateSubAccountPermissions = async (admin, targetUserId, permissions) => {
+  const targetUser = await prisma.user.findFirst({
+    where: {
+      id: BigInt(targetUserId),
+      orgId: admin.orgId,
+    }
+  });
+
+  if (!targetUser) {
+    throw new Error('User not found in this organization');
+  }
+
+  if (targetUser.isOrgOwner) {
+    throw new Error('Cannot modify permissions of an organization owner');
+  }
+
+  return prisma.user.update({
+    where: { id: BigInt(targetUserId) },
+    data: { permissions },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      permissions: true,
+      updatedAt: true,
+    }
+  });
+};
+
 const ALLOWED_WIDGET_NAMES = new Set([
   "revenue_vs_time",
   "expense_vs_time",

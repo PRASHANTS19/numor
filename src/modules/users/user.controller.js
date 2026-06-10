@@ -138,6 +138,24 @@ exports.subAccounts = async (req, res, next) => {
   }
 };
 
+exports.updatePermissions = async (req, res, next) => {
+  try {
+    const updatedUser = await service.updateSubAccountPermissions(
+      req.user,
+      req.params.userId,
+      req.body.permissions
+    );
+
+    res.json({
+      success: true,
+      message: "Permissions updated successfully",
+      data: updatedUser
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 exports.saveWidgets = async (req, res, next) => {
   try {

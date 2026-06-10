@@ -46,6 +46,8 @@ router.get('/invitations', requireOrgOwner, controller.invitations);
 
 router.get('/subAccounts', requireOrgOwner, controller.subAccounts);
 
+router.put('/subAccounts/:userId/permissions', requireOrgOwner, validate(validator.updatePermissionsSchema), controller.updatePermissions);
+
 router.get(
     '/listCAs',
     CAcontroller.listCAs);

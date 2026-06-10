@@ -53,21 +53,21 @@ function normalizeCustomFields(customFields) {
         .filter(Boolean);
 }
 
-async function saveInvoiceCustomFields(tx, userId, invoiceId, customFields) {
+async function saveInvoiceCustomFields(tx, orgId, invoiceId, customFields) {
     const normalized = normalizeCustomFields(customFields);
     if (!normalized.length) return;
 
     for (const field of normalized) {
         const definition = await tx.customFieldDefinition.upsert({
             where: {
-                userId_name: {
-                    userId: BigInt(userId),
+                orgId_name: {
+                    orgId: BigInt(orgId),
                     name: field.name,
                 },
             },
             update: {},
             create: {
-                userId: BigInt(userId),
+                orgId: BigInt(orgId),
                 name: field.name,
             },
         });
@@ -76,7 +76,7 @@ async function saveInvoiceCustomFields(tx, userId, invoiceId, customFields) {
             data: {
                 invoiceId: BigInt(invoiceId),
                 customFieldId: definition.id,
-                userId: BigInt(userId),
+                orgId: BigInt(orgId),
                 value: field.value,
             },
         });
@@ -138,7 +138,7 @@ async function saveInvoiceFromPreview(user, payload) {
             payload.buyer
                 ? await tx.client.create({
                     data: {
-                        userId: BigInt(user.userId),
+                        orgId: BigInt(user.orgId),
                         name: payload.buyer.name,
                         email: payload.buyer.email,
                         phone: payload.buyer.phone,
@@ -250,7 +250,7 @@ async function saveInvoiceFromPreview(user, payload) {
             }
         }
 
-        await saveInvoiceCustomFields(tx, user.userId, invoice.id, payload.customFields);
+        await saveInvoiceCustomFields(tx, user.orgId, invoice.id, payload.customFields);
 
         return invoice;
     });
@@ -267,7 +267,7 @@ async function listInvoices(user, page = 1, limit = 10, startDate, endDate) {
 
     // Build dynamic where condition
     const where = {
-        customerId: BigInt(user.userId),
+        orgId: BigInt(user.orgId),
     };
     // Add date filter only if provided
     if (startDate || endDate) {
@@ -684,7 +684,7 @@ async function updateInvoice(user, id, data) {
                 // Create new client
                 const newClient = await tx.client.create({
                     data: {
-                        userId: BigInt(user.userId),
+                        orgId: BigInt(user.orgId),
                         name: data.buyer.name,
                         email: data.buyer.email,
                         phone: data.buyer.phone,
@@ -900,7 +900,7 @@ async function updateInvoice(user, id, data) {
             await tx.invoiceCustomFieldValue.deleteMany({
                 where: { invoiceId },
             });
-            await saveInvoiceCustomFields(tx, user.userId, invoiceId, data.customFields);
+            await saveInvoiceCustomFields(tx, user.orgId, invoiceId, data.customFields);
         }
 
         if (data.customFields !== undefined) {
@@ -1085,7 +1085,7 @@ async function exportInvoices(
     includeItems
 ) {
     const where = {
-        customerId: BigInt(user.userId),
+        orgId: BigInt(user.orgId),
     };
 
     if (startDate || endDate) {

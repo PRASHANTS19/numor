@@ -229,7 +229,7 @@ exports.listExpenses = async (user, page = 1, limit = 10, startDate, endDate) =>
 
     // Build dynamic where condition
     const where = {
-        userId: BigInt(user.userId),
+        orgId: BigInt(user.orgId),
     };
     // Add date filter only if provided
     if (startDate || endDate) {
@@ -287,7 +287,7 @@ exports.updateExpense = async (user, expenseId, payload) => {
     const expense = await tx.expenseBill.findFirst({
       where: {
         id: BigInt(expenseId),
-        userId: BigInt(user.userId),
+        orgId: BigInt(user.orgId),
       },
     });
 
@@ -338,7 +338,7 @@ exports.deleteExpense = async (user, expenseId) => {
     const expense = await tx.expenseBill.findFirst({
       where: {
         id: BigInt(expenseId),
-        userId: BigInt(user.userId),
+        orgId: BigInt(user.orgId),
       },
     });
 
@@ -396,7 +396,7 @@ exports.exportExpenses = async (
 ) => {
 
   const where = {
-    userId: BigInt(user.userId),
+    orgId: BigInt(user.orgId),
   };
 
   if (startDate || endDate) {

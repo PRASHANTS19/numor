@@ -6,7 +6,7 @@ exports.createClient = async (user, data) => {
     try {
         return await prisma.client.create({
             data: {
-                userId: BigInt(user.userId),
+                orgId: BigInt(user.orgId),
                 name: data.name,
                 email: data.email ?? null,
                 phone: data.phone ?? null,
@@ -28,7 +28,7 @@ exports.createClient = async (user, data) => {
     } catch (error) {
         if (error.code === "P2002") {
             throw new Error(
-                "Client with this name already exists for this user"
+                "Client with this name already exists for this organization"
             );
         }
         throw error;
@@ -41,7 +41,7 @@ exports.listClient = async (user, page, limit) => {
     // console.log('User:', user);
     return prisma.client.findMany({
         where: {
-            userId: BigInt(user.userId),
+            orgId: BigInt(user.orgId),
             isActive: true,
         },
         take: limit,
@@ -51,9 +51,9 @@ exports.listClient = async (user, page, limit) => {
 }
 
 exports.getClientById = async (user, clientId) => {
-    return prisma.client.findUnique({
+    return prisma.client.findFirst({
         where: {
-            userId: BigInt(user.userId),
+            orgId: BigInt(user.orgId),
             id: BigInt(clientId),
             isActive: true,
         }
@@ -61,11 +61,11 @@ exports.getClientById = async (user, clientId) => {
 }
 
 exports.updateClient = async ({ user, clientId, data }) => {
-    console.log('Updating client with ID:', clientId, 'for user:', user.userId);
+    console.log('Updating client with ID:', clientId, 'for organization:', user.orgId);
     return prisma.client.updateMany({
         where: {
             id: BigInt(clientId),
-            userId: BigInt(user.userId),
+            orgId: BigInt(user.orgId),
             isActive: true,
         },
         data,
@@ -76,7 +76,7 @@ exports.deleteClient = async ({ user, clientId }) => {
     return prisma.client.deleteMany({
         where: {
             id: BigInt(clientId),
-            userId: BigInt(user.userId),
+            orgId: BigInt(user.orgId),
         }
     });
 };

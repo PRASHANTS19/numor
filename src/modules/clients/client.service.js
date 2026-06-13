@@ -38,7 +38,7 @@ exports.createClient = async (user, data) => {
 
 exports.listClient = async (user, page, limit) => {
     const offset = (page - 1) * limit;
-    // console.log('User:', user);
+    console.log("Organization ID:", user.orgId, "Page:", page, "Limit:", limit);
     return prisma.client.findMany({
         where: {
             orgId: BigInt(user.orgId),

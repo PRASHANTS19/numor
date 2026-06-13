@@ -156,6 +156,22 @@ exports.updatePermissions = async (req, res, next) => {
   }
 };
 
+exports.deleteSubAccount = async (req, res, next) => {
+  try {
+    const result = await service.deleteSubAccount(
+      req.user,
+      req.params.userId
+    );
+
+    res.json({
+      success: true,
+      message: "Sub-account deleted successfully",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 
 exports.saveWidgets = async (req, res, next) => {
   try {

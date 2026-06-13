@@ -333,6 +333,53 @@ exports.updateSubAccountPermissions = async (admin, targetUserId, permissions) =
   });
 };
 
+exports.deleteSubAccount = async (admin, targetUserId) => {
+  const targetUser = await prisma.user.findFirst({
+    where: {
+      id: BigInt(targetUserId),
+      orgId: admin.orgId,
+    }
+  });
+
+  if (!targetUser) {
+    throw new Error('User not found in this organization');
+  }
+
+  if (targetUser.isOrgOwner) {
+    throw new Error('Cannot delete an organization owner');
+  }
+
+  // Delete profile photo if it exists
+  if (targetUser.profilePhotoKey) {
+    try {
+      await storageService.remove(targetUser.profilePhotoKey);
+    } catch (err) {
+      console.error('Failed to remove profile photo for sub-account:', err);
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Re-assign invoices to the org owner
+    await tx.invoiceBill.updateMany({
+      where: { customerId: BigInt(targetUserId) },
+      data: { customerId: BigInt(admin.userId) }
+    });
+
+    // Nullify expenses associated with the user
+    await tx.expenseBill.updateMany({
+      where: { userId: BigInt(targetUserId) },
+      data: { userId: null }
+    });
+
+    // Delete the user
+    await tx.user.delete({
+      where: { id: BigInt(targetUserId) }
+    });
+  });
+
+  return { success: true };
+};
+
 const ALLOWED_WIDGET_NAMES = new Set([
   "revenue_vs_time",
   "expense_vs_time",

@@ -48,6 +48,8 @@ router.get('/subAccounts', requireOrgOwner, controller.subAccounts);
 
 router.put('/subAccounts/:userId/permissions', requireOrgOwner, validate(validator.updatePermissionsSchema), controller.updatePermissions);
 
+router.delete('/subAccounts/:userId', requireOrgOwner, controller.deleteSubAccount);
+
 router.get(
     '/listCAs',
     CAcontroller.listCAs);

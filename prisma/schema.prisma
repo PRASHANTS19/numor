@@ -116,7 +116,6 @@ model Client {
   organization  Organization?  @relation(fields: [orgId], references: [id])
   invoices      InvoiceBill[]
 
-  @@unique([orgId, name])
   @@index([orgId])
   @@map("clients")
 }

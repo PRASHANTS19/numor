@@ -83,11 +83,11 @@ model UserInvitation {
 
 model CustomFieldDefinition {
   id           BigInt                    @id @default(autoincrement())
-  orgId        BigInt
+  orgId        BigInt?
   name         String
   createdAt    DateTime                  @default(now())
   updatedAt    DateTime                  @updatedAt
-  organization Organization              @relation(fields: [orgId], references: [id])
+  organization Organization?             @relation(fields: [orgId], references: [id])
   values       InvoiceCustomFieldValue[]
 
   @@unique([orgId, name])
@@ -97,7 +97,7 @@ model CustomFieldDefinition {
 
 model Client {
   id            BigInt        @id @default(autoincrement())
-  orgId         BigInt
+  orgId         BigInt?
   name          String        @db.Citext
   email         String?       @db.Citext
   phone         String?
@@ -113,7 +113,7 @@ model Client {
   isActive      Boolean       @default(true)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  organization  Organization  @relation(fields: [orgId], references: [id])
+  organization  Organization?  @relation(fields: [orgId], references: [id])
   invoices      InvoiceBill[]
 
   @@unique([orgId, name])

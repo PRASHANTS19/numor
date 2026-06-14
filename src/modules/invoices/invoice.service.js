@@ -431,7 +431,7 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
             await prisma.invoiceCustomFieldValue.deleteMany({
                 where: { invoiceId: BigInt(invoiceId) },
             });
-            await saveInvoiceCustomFields(prisma, user.userId, updated.id, data.customFields);
+            await saveInvoiceCustomFields(prisma, user.orgId, updated.id, data.customFields);
             return prisma.invoiceBill.findFirstOrThrow({
                 where: { id: BigInt(invoiceId) },
                 include: {
@@ -577,7 +577,7 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
         },
     });
 
-    await saveInvoiceCustomFields(prisma, user.userId, invoice.id, data.customFields);
+    await saveInvoiceCustomFields(prisma, user.orgId, invoice.id, data.customFields);
     // console.log('Created invoice with ID:', invoice.id);
 
     // 3️⃣ Queue PDF generation
@@ -937,7 +937,7 @@ async function getInvoice(user, id) {
 
 async function listCustomFieldDefinitions(user) {
     return prisma.customFieldDefinition.findMany({
-        where: { userId: BigInt(user.userId) },
+        where: { orgId: BigInt(user.orgId) },
         orderBy: { createdAt: "asc" },
     });
 }

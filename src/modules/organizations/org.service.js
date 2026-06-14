@@ -4,6 +4,19 @@ const storageService = require('../../storage/storage.service');
 async function getById(orgId) {
   return prisma.organization.findUnique({
     where: { id: BigInt(orgId) },
+    include: {
+      customFieldDefinitions: {
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
   });
 }
 

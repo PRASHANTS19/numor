@@ -9,6 +9,7 @@ async function getById(orgId) {
         select: {
           id: true,
           name: true,
+          predefinedValues: true,
           createdAt: true,
           updatedAt: true,
         },
@@ -112,10 +113,72 @@ async function deleteLogo(user) {
   }
 }
 
+async function listCustomFieldDefinitions(user) {
+  return prisma.customFieldDefinition.findMany({
+    where: { orgId: BigInt(user.orgId) },
+    orderBy: { createdAt: "asc" },
+  });
+}
+
+async function createCustomFieldDefinition(user, data) {
+  const existing = await prisma.customFieldDefinition.findUnique({
+    where: {
+      orgId_name: { orgId: BigInt(user.orgId), name: data.name }
+    }
+  });
+
+  if (existing) {
+    throw new Error("A custom field with this name already exists.");
+  }
+
+  return prisma.customFieldDefinition.create({
+    data: {
+      orgId: BigInt(user.orgId),
+      name: data.name,
+      predefinedValues: data.predefinedValues || [],
+    }
+  });
+}
+
+async function updateCustomFieldDefinition(user, id, data) {
+  const existing = await prisma.customFieldDefinition.findFirst({
+    where: { id: BigInt(id), orgId: BigInt(user.orgId) }
+  });
+  if (!existing) throw new Error("Custom field not found.");
+
+  return prisma.customFieldDefinition.update({
+    where: { id: BigInt(id) },
+    data: {
+      name: data.name,
+      predefinedValues: data.predefinedValues,
+    }
+  });
+}
+
+async function deleteCustomFieldDefinition(user, id) {
+  const existing = await prisma.customFieldDefinition.findFirst({
+    where: { id: BigInt(id), orgId: BigInt(user.orgId) }
+  });
+  if (!existing) throw new Error("Custom field not found.");
+
+  // Delete associated values on invoices to prevent foreign key constraint errors
+  await prisma.invoiceCustomFieldValue.deleteMany({
+    where: { customFieldId: BigInt(id) }
+  });
+
+  return prisma.customFieldDefinition.delete({
+    where: { id: BigInt(id) }
+  });
+}
+
 module.exports = {
   getById,
   update,
   uploadLogo,
   getLogo,
-  deleteLogo
+  deleteLogo,
+  listCustomFieldDefinitions,
+  createCustomFieldDefinition,
+  updateCustomFieldDefinition,
+  deleteCustomFieldDefinition
 };

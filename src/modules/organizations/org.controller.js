@@ -53,10 +53,56 @@ async function deleteLogo(req, res, next) {
   }
 }
 
+async function listCustomFields(req, res) {
+  try {
+    const data = await orgService.listCustomFieldDefinitions(req.user);
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('Error in listCustomFields:', err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+}
+
+async function createCustomField(req, res) {
+  try {
+    const data = await orgService.createCustomFieldDefinition(req.user, req.body);
+    return res.status(201).json({ success: true, data });
+  } catch (err) {
+    console.error('Error in createCustomField:', err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+}
+
+async function updateCustomField(req, res) {
+  try {
+    const id = req.params.id;
+    const data = await orgService.updateCustomFieldDefinition(req.user, id, req.body);
+    return res.json({ success: true, data });
+  } catch (err) {
+    console.error('Error in updateCustomField:', err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+}
+
+async function deleteCustomField(req, res) {
+  try {
+    const id = req.params.id;
+    await orgService.deleteCustomFieldDefinition(req.user, id);
+    return res.json({ success: true, message: "Custom field deleted successfully" });
+  } catch (err) {
+    console.error('Error in deleteCustomField:', err);
+    return res.status(400).json({ success: false, message: err.message });
+  }
+}
+
 module.exports = {
   getMyOrganization,
   updateMyOrganization,
   uploadLogo,
   getLogo,
-  deleteLogo
+  deleteLogo,
+  listCustomFields,
+  createCustomField,
+  updateCustomField,
+  deleteCustomField
 };

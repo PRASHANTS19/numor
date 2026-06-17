@@ -42,16 +42,6 @@ exports.listInvoices = async function (req, res) {
   }
 }
 
-exports.listCustomFields = async function (req, res) {
-  try {
-    const data = await invoiceService.listCustomFieldDefinitions(req.user);
-    return res.json({ success: true, data });
-  } catch (err) {
-    console.error('Error in listCustomFields:', err);
-    return res.status(500).json({ success: false, message: err.message });
-  }
-}
-
 exports.listInvoiceProduct = async function (req, res) {
   try {
     const { page, limit } = req.query;

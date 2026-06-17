@@ -58,19 +58,18 @@ async function saveInvoiceCustomFields(tx, orgId, invoiceId, customFields) {
     if (!normalized.length) return;
 
     for (const field of normalized) {
-        const definition = await tx.customFieldDefinition.upsert({
+        const definition = await tx.customFieldDefinition.findUnique({
             where: {
                 orgId_name: {
                     orgId: BigInt(orgId),
                     name: field.name,
                 },
             },
-            update: {},
-            create: {
-                orgId: BigInt(orgId),
-                name: field.name,
-            },
         });
+
+        if (!definition) {
+            throw new Error(`Custom field '${field.name}' is not defined in settings.`);
+        }
 
         await tx.invoiceCustomFieldValue.create({
             data: {
@@ -935,13 +934,6 @@ async function getInvoice(user, id) {
     });
 };
 
-async function listCustomFieldDefinitions(user) {
-    return prisma.customFieldDefinition.findMany({
-        where: { orgId: BigInt(user.orgId) },
-        orderBy: { createdAt: "asc" },
-    });
-}
-
 async function getSignedPdfUrl(user, id) {
     const invoice = await prisma.invoiceBill.findFirst({
         where: {
@@ -1197,6 +1189,5 @@ module.exports = {
     pushPdfReady,
     updateInvoice,
     deleteInvoice,
-    exportInvoices,
-    listCustomFieldDefinitions
+    exportInvoices
 };

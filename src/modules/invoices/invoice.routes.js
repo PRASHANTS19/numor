@@ -39,13 +39,6 @@ router.get(
 )
 
 router.get(
-  '/custom-fields',
-  auth,
-  requirePermission('income', 'read'),
-  controller.listCustomFields
-)
-
-router.get(
   '/:id/products',
   auth,
   requirePermission('income', 'read'),

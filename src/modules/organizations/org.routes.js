@@ -10,4 +10,9 @@ router.post('/logo', auth, requirePermission("organizationSettings", "write"), c
 router.get('/logo', auth, requirePermission("organizationSettings", "read"), orgController.getLogo);
 router.delete('/logo', auth, requirePermission("organizationSettings", "write"), orgController.deleteLogo);
 
+router.get('/custom-fields', auth, requirePermission("organizationSettings", "read"), orgController.listCustomFields);
+router.post('/custom-fields', auth, requirePermission("organizationSettings", "write"), orgController.createCustomField);
+router.put('/custom-fields/:id', auth, requirePermission("organizationSettings", "write"), orgController.updateCustomField);
+router.delete('/custom-fields/:id', auth, requirePermission("organizationSettings", "write"), orgController.deleteCustomField);
+
 module.exports = router;

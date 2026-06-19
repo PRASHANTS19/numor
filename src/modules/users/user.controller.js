@@ -1,9 +1,10 @@
 const service = require('./user.service');
+const { sendResponse } = require('../../utils/response');
 
 exports.createUser = async (req, res, next) => {
     try{
         const result = await service.createUser(req.user, req.body);
-        res.status(201).json({success: true, data: result});
+        return sendResponse(res, 201, { data: result });
     }
     catch(err){
         next(err);
@@ -14,7 +15,7 @@ exports.listUsers = async (req, res, next) => {
     try {
         const {page, limit} = req.query;
         const users = await service.listUsers(req.user, Number(page), Number(limit));
-        res.json({ success: true, data: users });
+        return sendResponse(res, 200, { data: users });
     } catch (err) {
         next(err);
     }
@@ -23,7 +24,7 @@ exports.listUsers = async (req, res, next) => {
 exports.getUser = async (req, res, next) => {
     try {
         const user = await service.getUser(req.user, req.params.id);
-        res.json({ success: true, data: user });
+        return sendResponse(res, 200, { data: user });
     } catch (err) {
         next(err);
     }
@@ -33,7 +34,7 @@ exports.updateUser = async (req, res, next) => {
     try {
         const user = req.user;
         const userresponse = await service.updateUser(user, req.body);
-        res.json({ success: true, data: userresponse });
+        return sendResponse(res, 200, { data: userresponse });
     } catch (err) {
         next(err);
     }
@@ -46,7 +47,7 @@ exports.updateUserStatus = async (req, res, next) => {
             req.params.id,
             req.body.isActive
         );
-        res.json({ success: true, data: user });
+        return sendResponse(res, 200, { data: user });
     } catch (err) {
         next(err);
     }
@@ -56,7 +57,7 @@ exports.getCurrentUser = async (req, res, next) => {
     console.log('Fetching current user for:', req.user);
     try {
         const user = await service.getUser(req.user, req.user.userId);
-        res.json({ success: true, data: user });
+        return sendResponse(res, 200, { data: user });
     } catch (err) {
         next(err);
     }
@@ -68,9 +69,9 @@ exports.uploadProfilePhoto = async (req, res, next) => {
     const user = req.user;
     const file = req.file;
     const profilePhotoUrl = await service.uploadProfilePhoto(user, file);
-    res.json({ success: true, profilePhotoUrl });
+    return sendResponse(res, 200, { data: { profilePhotoUrl } });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -78,9 +79,9 @@ exports.getProfilePhoto = async (req, res, next) => {
   try {
     const user = req.user;
     const photoUrl = await service.getProfilePhoto(user);
-    res.json({ success: true, photoUrl });
+    return sendResponse(res, 200, { data: { photoUrl } });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -88,9 +89,9 @@ exports.deleteProfilePhoto = async (req, res, next) => {
   try {
     const user = req.user;
     await service.deleteProfilePhoto(user);
-    res.json({ success: true, message: "Profile photo deleted successfully" });
+    return sendResponse(res, 200, { message: "Profile photo deleted successfully" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 }
 
@@ -99,12 +100,17 @@ exports.inviteNewUser = async (req, res, next) => {
   const { email, organizationId, permissions } = req.body;
 
   if (!email || !organizationId || !permissions) {
-    return res.status(400).json({ error: 'Missing required parameters' });
+    const error = new Error('Missing required parameters');
+    error.statusCode = 400;
+    return next(error);
   }
 
   try {
     const result = await service.inviteNewUser(email, organizationId, permissions);
-    res.json({ success: result.success, message: result.message });
+    return sendResponse(res, 200, {
+      success: result.success,
+      message: result.message,
+    });
   } catch (err) {
     next(err);
   }
@@ -120,8 +126,7 @@ exports.saveWidgets = async (req, res, next) => {
 
     const data = await service.saveWidgets(userId, widgets);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data
     });
   } catch (err) {
@@ -139,8 +144,7 @@ exports.deleteWidget = async (req, res, next) => {
 
     const data = await service.deleteWidget(userId, widgetName);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data
     });
   } catch (err) {

@@ -1,25 +1,24 @@
 const service = require('./caSlot.service');
 const { google } = require("googleapis");
+const { sendResponse } = require('../../../utils/response');
 
 
-exports.createSlots = async (req, res) => {
+exports.createSlots = async (req, res, next) => {
   try {
     const user = req.user;
     const data = req.body;
 
     const slots = await service.createOrUpdateSlots(user, data);
 
-    res.json({ success: true, slots });
+    return sendResponse(res, 200, { data: { slots } });
   } catch (error) {
     console.error("Error in createSlots:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message || "Something went wrong"
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 };
 
-exports.getSlots = async (req, res) => {
+exports.getSlots = async (req, res, next) => {
   try {
     const requestedCaProfileId = req.params.caProfileId || req.query.caProfileId;
     const { startDate, endDate } = req.query;
@@ -34,30 +33,26 @@ exports.getSlots = async (req, res) => {
       endDate
     );
 
-    res.json({ success: true, slots });
+    return sendResponse(res, 200, { data: { slots } });
   } catch (error) {
     console.error("Error in getSlots:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message || "Something went wrong"
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 };
 
-exports.createBooking = async (req, res) => {
+exports.createBooking = async (req, res, next) => {
   try {
     const user = req.user;
     const data = req.body;
 
     const booking = await service.createBooking(user, data);
 
-    res.json({ success: true, booking });
+    return sendResponse(res, 200, { data: { booking } });
   } catch (error) {
     console.error("Error in createBooking:", error);
-    res.status(400).json({
-      success: false,
-      message: error.message || "Something went wrong"
-    });
+    error.statusCode = error.statusCode || 400;
+    next(error);
   }
 };
 
@@ -71,8 +66,7 @@ exports.getBookingByCode = async (req, res, next) => {
       req.user
     );
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: booking
     });
   } catch (err) {
@@ -82,11 +76,10 @@ exports.getBookingByCode = async (req, res, next) => {
 
 exports.listMyBookings = async (req, res, next) => {
   try {
-    user = req.user;
+    const user = req.user;
     const bookings = await service.listUserBookings(user);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: bookings
     });
   } catch (err) {
@@ -99,8 +92,7 @@ exports.listCABookings = async (req, res, next) => {
     const CA = req.user;
     const bookings = await service.listCABookings(CA);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: bookings
     });
   } catch (err) {
@@ -108,28 +100,34 @@ exports.listCABookings = async (req, res, next) => {
   }
 };
 
-exports.getGoogleCalendarAuthUrl = async (req, res) => {
-  const { caProfileId } = req.query;
+exports.getGoogleCalendarAuthUrl = async (req, res, next) => {
+  try {
+    const { caProfileId } = req.query;
 
-  if (!caProfileId) {
-    throw new Error("caProfileId is required");
+    if (!caProfileId) {
+      const error = new Error("caProfileId is required");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    const url = oauth2Client.generateAuthUrl({
+      access_type: "offline",
+      scope: [
+        "https://www.googleapis.com/auth/calendar",
+        "openid",
+        "email",
+        "profile"
+      ],
+      prompt: "consent",
+      state: caProfileId,
+    });
+
+    return sendResponse(res, 200, { data: { url } });
+  } catch (err) {
+    next(err);
   }
-
-  const url = oauth2Client.generateAuthUrl({
-    access_type: "offline",
-    scope: [
-      "https://www.googleapis.com/auth/calendar",
-      "openid",
-      "email",
-      "profile"
-    ],
-    prompt: "consent",
-    state: caProfileId,
-  });
-
-  res.json({ url });
 };
-exports.googleCallback = async (req, res) => {
+exports.googleCallback = async (req, res, next) => {
   try {
     const code = req.query.code;
     const caProfileId = req.query.state;
@@ -170,7 +168,7 @@ exports.googleCallback = async (req, res) => {
       "GOOGLE CALLBACK ERROR:",
       err.response?.data || err.message
     );
-    res.status(500).send("Error connecting Google Calendar");
+    next(err);
   }
 };
 

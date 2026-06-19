@@ -1,4 +1,5 @@
 const caReviewService = require('./caReview.service');
+const { sendResponse } = require('../../../utils/response');
 
 /**
  * Create CA Review (Customer)
@@ -10,8 +11,7 @@ exports.createReview = async (req, res, next) => {
       req.body
     );
 
-    res.status(201).json({
-      success: true,
+    return sendResponse(res, 201, {
       message: 'Review submitted successfully',
       data: review
     });
@@ -31,8 +31,7 @@ exports.getReviewsForCA = async (req, res, next) => {
       BigInt(caProfileId)
     );
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: reviews
     });
   } catch (err) {

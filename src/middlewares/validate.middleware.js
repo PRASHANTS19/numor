@@ -20,11 +20,10 @@ module.exports = (schema) => (req, res, next) => {
   }
 
   if (errors.length) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid input',
-      errors,
-    });
+    const error = new Error('Invalid input');
+    error.statusCode = 400;
+    error.errors = errors;
+    return next(error);
   }
 
   next();

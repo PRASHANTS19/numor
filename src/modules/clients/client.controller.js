@@ -1,21 +1,22 @@
 const clientService = require('./client.service');
+const { sendResponse } = require('../../utils/response');
 
-exports.createClient = async function (req, res) {
+exports.createClient = async function (req, res, next) {
     try{
         const user = req.user; // from auth middleware
         const data = req.body;
 
         const client = await clientService.createClient(user, data);
 
-        res.status(201).json({success: true, data: client});
+        return sendResponse(res, 201, { data: client });
     }
     catch(err){
-        res.status(400).json({success: false, message: err.message});
+        next(err);
     }
 
 }
 
-exports.listClients = async function (req, res) {
+exports.listClients = async function (req, res, next) {
     try{
         const user = req.user; //breakpoint here
         const {page = 1, limit = 10} = req.query;
@@ -24,28 +25,28 @@ exports.listClients = async function (req, res) {
         console.log('Clients fetched:', clients);
         console.log('user:', user);
 
-        res.json({success: true, data: clients});
+        return sendResponse(res, 200, { data: clients });
     }
     catch(err){
-        res.status(500).json({success: false, message: err.message});
+        next(err);
     }
 
 }
 
-exports.getClient = async function (req, res) {
+exports.getClient = async function (req, res, next) {
     try{
         const user = req.user; // from auth middleware
         const clientId = req.params.id; // from URL parameter
 
         const client = await clientService.getClientById(user, clientId);    
-        res.json({success: true, data: client});
+        return sendResponse(res, 200, { data: client });
     }
     catch(err){
-        res.status(500).json({success: false, message: err.message});
+        next(err);
     }
 }
 
-exports.updateClient = async (req, res) => {
+exports.updateClient = async (req, res, next) => {
   try {
     const result = await clientService.updateClient({
       user: req.user,
@@ -54,25 +55,20 @@ exports.updateClient = async (req, res) => {
     });
 
     if (result.count === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found or not authorized',
-      });
+      const error = new Error('Client not found or not authorized');
+      error.statusCode = 404;
+      throw error;
     }
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: 'Client updated successfully',
     });
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };
 
-exports.deleteClient = async (req, res) => {
+exports.deleteClient = async (req, res, next) => {
   try {
     const result = await clientService.deleteClient({
       user: req.user,
@@ -80,20 +76,15 @@ exports.deleteClient = async (req, res) => {
     });
 
     if (result.count === 0) {
-      return res.status(404).json({
-        success: false,
-        message: 'Client not found or not authorized',
-      });
+      const error = new Error('Client not found or not authorized');
+      error.statusCode = 404;
+      throw error;
     }
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: 'Client deleted successfully',
     });
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    next(error);
   }
 };

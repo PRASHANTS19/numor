@@ -1,10 +1,11 @@
 const { ca, fi } = require('zod/v4/locales');
 const caProfileService = require('./caProfile.service');
+const { sendResponse } = require('../../../utils/response');
 
 exports.listCAs = async (req, res, next) => {
   try {
     const cas = await caProfileService.listApprovedCAs(req.query);
-    res.json({ success: true, data: cas });
+    return sendResponse(res, 200, { data: cas });
   } catch (err) {
     next(err);
   }
@@ -14,7 +15,7 @@ exports.getCAProfile = async (req, res, next) => {
   try {
     const user = req.user;
     const profile = await caProfileService.getByUserId(user);
-    res.json({ success: true, data: profile });
+    return sendResponse(res, 200, { data: profile });
   } catch (err) {
     next(err);
   }
@@ -25,7 +26,7 @@ exports.createCAProfile = async (req, res, next) => {
     const user = req.user;
     const payload = req.body;
     const profile = await caProfileService.createProfile(user, payload);
-    res.status(201).json({ success: true, data: profile });
+    return sendResponse(res, 201, { data: profile });
   } catch (err) {
     next(err);
   }
@@ -38,7 +39,7 @@ exports.updateCAProfile = async (req, res, next) => {
     const profile = await caProfileService.updateProfile(
       user, payload
     );
-    res.json({ success: true, data: profile });
+    return sendResponse(res, 200, { data: profile });
   } catch (err) {
     next(err);
   }
@@ -48,51 +49,55 @@ exports.deleteCAProfile = async (req, res, next) => {
   try {
     const user = req.user;
     await caProfileService.deleteProfile(user);
-    res.json({ success: true, message: 'CA profile deleted' });
+    return sendResponse(res, 200, { message: 'CA profile deleted' });
   } catch (err) {
     next(err);
   }
 };
 
-exports.uploadDocument = async (req, res) => {
+exports.uploadDocument = async (req, res, next) => {
   try {
     const user = req.user;
     const file = req.file;
     const { type, description } = req.body;
 
     if (!file) {
-      return res.status(400).json({ message: "File is required" });
+      const error = new Error("File is required");
+      error.statusCode = 400;
+      throw error;
     }
     if (!type) {
-      return res.status(400).json({ message: "Type is required" });
+      const error = new Error("Type is required");
+      error.statusCode = 400;
+      throw error;
     }
     if (!description) {
-      return res.status(400).json({ message: "Name of document is required" });
+      const error = new Error("Name of document is required");
+      error.statusCode = 400;
+      throw error;
     }
     const result = await caProfileService.uploadDocument(user, file, type, description || ""); // Pass description or empty string if not provided
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: result
     });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
-exports.getDocuments = async (req, res) => {
+exports.getDocuments = async (req, res, next) => {
   try {
 
     const user = req.user;
 
     const data = await caProfileService.getDocuments(user);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data
     });
 
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    next(err);
   }
 };
 
@@ -104,8 +109,7 @@ exports.deleteDocument = async (req, res, next) => {
       fileKey
     );
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       data: result
     });
 
@@ -118,8 +122,7 @@ exports.submitPendingProfile = async (req, res, next) => {
   try {
     const result = await caProfileService.submitPendingProfile(req.user);
 
-    res.json({
-      success: true,
+    return sendResponse(res, 200, {
       message: "Profile submitted for review",
       data: result
     });
@@ -129,24 +132,3 @@ exports.submitPendingProfile = async (req, res, next) => {
   }
 };
 
-// exports.uploadCertificate = async (req, res, next) => {
-//     try {
-//       const user = req.user;
-//       const file = req.file;
-//       const certUrl = await caProfileService.uploadCertificate(user, file);
-//       res.json({ success: true, data: { certUrl } });
-//     } catch (err) {
-//       next(err);
-//     }
-// }
-
-// exports.uploadIdProof = async (req, res, next) => {
-//   try{
-//     const user = req.user;
-//     const file = req.file;
-//     const idProofUrl = await caProfileService.uploadIdProof(user, file);
-//     res.json({ success: true, data: { idProofUrl } });  
-//   } catch (err) {
-//     next(err);
-//   }
-// }

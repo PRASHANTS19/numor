@@ -1,10 +1,9 @@
 function allowRoles(...allowedRoles) {
   return (req, res, next) => {
     if (!req.user || !allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: 'Access denied',
-      });
+      const error = new Error('Access denied');
+      error.statusCode = 403;
+      return next(error);
     }
     next();
   };

@@ -1,45 +1,40 @@
 const invoicePdfService = require("./qstash.service");
 const invoiceQstash = require("../queues/invoice.qstash");
+const { sendResponse } = require("../utils/response");
 
-exports.processInvoicePdf = async (req, res) => {
+exports.processInvoicePdf = async (req, res, next) => {
   const { invoiceId, sendEmail } = req.body;
 
   if (!invoiceId) {
-    return res.status(400).json({ error: "invoiceId is required" });
+    const error = new Error("invoiceId is required");
+    error.statusCode = 400;
+    return next(error);
   }
 
   try {
     await invoicePdfService.process(invoiceId, sendEmail);
 
-    return res.status(200).json({
-      success: true,
-      invoiceId,
+    return sendResponse(res, 200, {
+      data: { invoiceId },
     });
   } catch (err) {
     console.error("PDF processing failed:", err);
 
-    return res.status(500).json({
-      error: "PDF generation failed",
-    });
+    err.message = err.message || "PDF generation failed";
+    next(err);
   }
 };
 
-exports.processInvoicePdfFailure = async (req, res) => {
+exports.processInvoicePdfFailure = async (req, res, next) => {
   try {
     const result = await invoicePdfService.markInvoiceAsFailedFromDlq(req.body);
 
-    return res.status(200).json({
-      success: true,
-      ...result,
-    });
+    return sendResponse(res, 200, { data: result });
   } catch (err) {
     console.error("Failed to process QStash DLQ callback:", err);
 
-    return res.status(500).json({
-      success: false,
-      error: "DLQ callback processing failed",
-    });
+    err.message = err.message || "DLQ callback processing failed";
+    next(err);
   }
 };
-
 

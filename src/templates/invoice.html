@@ -185,6 +185,11 @@
                {{#if sacCode}}
                <p>SAC Code: {{sacCode}}</p>
                {{/if}}
+               {{#if customFields}}
+               {{#each customFields}}
+               <p><strong>{{this.customField.name}}:</strong> {{this.value}}</p>
+               {{/each}}
+               {{/if}}
             </div>
             <div class="box">
                <h4>Bill To</h4>

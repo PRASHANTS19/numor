@@ -12,6 +12,7 @@ Rules:
 - If a value cannot be inferred, return null
 - If multiple invoices exist, parse ONLY the first one
 - Ensure totals are mathematically consistent
+- If tax rates (e.g., CGST, SGST, IGST) are provided as global totals for the overall invoice, sum these percentages together and distribute the combined tax rate to all items in the invoice.
 
 Hints:
 - "Voucher No" → invoiceNumber

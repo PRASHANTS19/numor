@@ -27,8 +27,29 @@ Rules:
   "Bank Charges",
   "Training & Education",
   "Other"
+If category cannot be determined with high confidence,
+  return "Other".
 - taxPercent should be the percentage value between 0 and 100
-- If tax percent is given only at the end and not for each item, apply it equally to all items. And if the tax percent at the end is given as a combination of multiple tax rates (CGST + SGST, or CGST + UTGST) then apply the combined (sum) tax rate to all items.
+Every item MUST have a taxRate value.
+
+If tax is specified at item level, use that value.
+
+If tax is only available in a summary section (CGST, SGST, IGST, VAT, GST etc.):
+
+- Calculate the combined tax percentage.
+- Populate that percentage into EACH item.taxRate.
+- Do not leave item.taxRate as 0 when a tax summary exists.
+
+Examples:
+
+CGST 9% + SGST 9%
+=> item.taxRate = 18
+
+IGST 18%
+=> item.taxRate = 18
+
+CGST 2.5% + SGST 2.5%
+=> item.taxRate = 5
 
 JSON format:
 {

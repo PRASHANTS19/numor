@@ -1,7 +1,8 @@
 const { numorAgent } = require("../chatbot/agent/numor.agent");
 const { resolveUserContext } = require("./context/chat.resolveUserContext"); // unified context
 const { buildSystemPrompt } = require("../chatbot/agent/system.prompt");
-const { RemoveMessage } = require("@langchain/core/messages");
+const { RemoveMessage, SystemMessage } = require("@langchain/core/messages");
+const { summarizeMessages } = require("../chatbot/middleware/summarizationMiddleware");
 const chatLogger = require("../../../utils/chat.logger");
 
 /*
@@ -14,6 +15,67 @@ LLM calls tool: getInvoices({ status: "OVERDUE", month: "Dec" })
 ↓
 Tool returns ONLY relevant rows
 */
+const MAX_HISTORY_TURNS = 6;
+const MAX_HISTORY_MESSAGES = MAX_HISTORY_TURNS * 2;
+const HISTORY_SUMMARY_PREFIX = "Summary of previous conversation:";
+
+async function ensureConversationWindow(user) {
+  const threadId = `session-${user.sessionId}`;
+  const state = await numorAgent.getState({
+    configurable: { thread_id: threadId },
+  });
+
+  const allMessages = state?.values?.messages ?? [];
+  const normalized = normalizeMessages(allMessages);
+
+  if (normalized.length <= MAX_HISTORY_MESSAGES) {
+    return;
+  }
+
+  const keptNormalized = normalized.slice(-MAX_HISTORY_MESSAGES);
+  const firstKeptId = keptNormalized[0]?.id;
+  const keepIndex = firstKeptId
+    ? allMessages.findIndex((msg) => msg.id === firstKeptId)
+    : 0;
+
+  if (keepIndex <= 0) {
+    return;
+  }
+
+  const removedMessages = allMessages
+    .slice(0, keepIndex)
+    .filter((msg) => Boolean(msg.id))
+    .map((msg) => msg.id);
+
+  const removedIds = [...new Set(removedMessages)];
+  const oldNormalized = normalized.slice(0, normalized.length - MAX_HISTORY_MESSAGES);
+  const summary = await summarizeMessages(oldNormalized);
+
+  const summaryMessage = new SystemMessage({
+    content: `${HISTORY_SUMMARY_PREFIX}\n${summary}`,
+  });
+
+  await numorAgent.updateState(
+    { configurable: { thread_id: threadId } },
+    {
+      messages: [
+        ...removedIds.map((id) => new RemoveMessage({ id })),
+        summaryMessage,
+      ],
+    }
+  );
+
+  chatLogger.info({
+    event: "CHAT_HISTORY_PRUNED",
+    userId: user.userId,
+    sessionId: user.sessionId,
+    originalMessages: normalized.length,
+    keptMessages: MAX_HISTORY_MESSAGES,
+    droppedMessages: removedMessages.length,
+    summaryLength: summary.length,
+  });
+}
+
 async function handleChatStream(user, message, res) {
   const agentStart = Date.now();
 
@@ -30,6 +92,8 @@ async function handleChatStream(user, message, res) {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
+
+    await ensureConversationWindow(user);
 
     let fullResponse = "";
 
@@ -104,6 +168,8 @@ async function handleChat(user, message) {
       role: user.role,
       messageLength: message.length,
     });
+    await ensureConversationWindow(user);
+
     const result = await numorAgent.invoke(
       {
         messages: [

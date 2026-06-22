@@ -11,7 +11,7 @@ exports.process = async (invoiceId, sendEmail) => {
   // 🔒 Idempotency guard
   const invoice = await prisma.invoiceBill.findUnique({
     where: { id },
-    include: { items: true, organization: true, client: true, customer: true },
+    include: { items: true, organization: true, client: true, customer: true, customFields: { include: { customField: true } } },
   });
 
   if (!invoice) {
@@ -163,7 +163,7 @@ async function handleInvoice(invoiceId) {
 
   const invoice = await prisma.invoiceBill.findUnique({
     where: { id: BigInt(invoiceId) },
-    include: { items: true, organization: true, client: true }
+    include: { items: true, organization: true, client: true, customFields: { include: { customField: true } } }
   });
 
   if (!invoice || invoice.pdfStatus === 'READY') return;

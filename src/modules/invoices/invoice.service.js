@@ -921,7 +921,7 @@ async function updateInvoice(user, id, data) {
 }
 
 async function getInvoice(user, id) {
-    return prisma.invoiceBill.findFirstOrThrow({
+    const invoice = await prisma.invoiceBill.findFirstOrThrow({
         where: { id: BigInt(id), orgId: user.orgId },
         include: {
             items: true,
@@ -932,6 +932,13 @@ async function getInvoice(user, id) {
             },
         }
     });
+    return {
+        ...invoice,
+        customFields: (invoice.customFields ?? []).map(cf => ({
+            name: cf.customField.name,
+            value: cf.value
+        }))
+    };
 };
 
 async function getSignedPdfUrl(user, id) {

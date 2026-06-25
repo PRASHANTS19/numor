@@ -20,11 +20,14 @@ JSON format:
   "paymentTerms": string | null,
 
   "currency": string,
+  "exchangeRate": number | null,
+  "baseCurrency": string | null,
   "subtotal": number,
   "discount": number,
   "taxAmount": number,
   "shippingCost": number,
   "totalAmount": number,
+  "paidAmount": number,
 
   "seller": {
     "name": string,
@@ -35,7 +38,9 @@ JSON format:
     "city": string | null,
     "state": string | null,
     "zipCode": string | null,
-    "country": string | null
+    "country": string | null,
+    "iecCode": string | null,
+    "lutFiled": boolean
   },
 
   "buyer": {
@@ -59,18 +64,37 @@ JSON format:
     "taxType": "GST" | "VAT" | "SALES" | "NONE",
     "placeOfSupply": string | null,
     "reverseCharge": boolean,
+    "reverseReason": string | null,
+    "sacCode": string | null,
     "taxSummary": {
       "<TAX_NAME>": {
         "rate": number,
         "amount": number
       }
     } | null
-    Example:
-    "taxSummary": {
-      "CGST": { "rate": 9, "amount": 100.00 },
-      "SGST": { "rate": 18, "amount": 200.00 }
-    } | null
   },
+
+  "shipTo": {
+    "name": string | null,
+    "address": string | null
+  } | null,
+
+  "countryOfOrigin": string | null,
+  "countryOfDestination": string | null,
+  "incoterms": string | null,
+
+  "bankDetails": {
+    "accountName": string | null,
+    "accountNumber": string | null,
+    "bankName": string | null,
+    "routingNumber": string | null,
+    "ifscCode": string | null
+  } | null,
+  "paymentLink": string | null,
+  "bankAddress": string | null,
+  "jurisdiction": string | null,
+  "lateFeePolicy": string | null,
+  "notes": string | null,
 
   "items": [
     {
@@ -81,6 +105,13 @@ JSON format:
       "unitPrice": number,
       "taxRate": number,
       "total": number
+    }
+  ],
+
+  "customFields": [
+    {
+      "name": string,
+      "value": string
     }
   ]
 }

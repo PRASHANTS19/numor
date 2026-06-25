@@ -2,6 +2,7 @@ const prisma = require('../../config/database');
 const aiService = require('../ai/ai.service');
 const qstashService = require("../../queues/invoice.qstash");
 const { is } = require('zod/locales');
+const fs = require("fs");
 const storage = require('../../storage/storage.service');
 const { Parser } = require("json2csv");
 const ExcelJS = require("exceljs");
@@ -58,7 +59,7 @@ async function saveInvoiceCustomFields(tx, orgId, invoiceId, customFields) {
     if (!normalized.length) return;
 
     for (const field of normalized) {
-        const definition = await tx.customFieldDefinition.findUnique({
+        let definition = await tx.customFieldDefinition.findUnique({
             where: {
                 orgId_name: {
                     orgId: BigInt(orgId),
@@ -68,11 +69,25 @@ async function saveInvoiceCustomFields(tx, orgId, invoiceId, customFields) {
         });
 
         if (!definition) {
-            throw new Error(`Custom field '${field.name}' is not defined in settings.`);
+            definition = await tx.customFieldDefinition.create({
+                data: {
+                    orgId: BigInt(orgId),
+                    name: field.name,
+                },
+            });
         }
 
-        await tx.invoiceCustomFieldValue.create({
-            data: {
+        await tx.invoiceCustomFieldValue.upsert({
+            where: {
+                invoiceId_customFieldId: {
+                    invoiceId: BigInt(invoiceId),
+                    customFieldId: definition.id,
+                },
+            },
+            update: {
+                value: field.value,
+            },
+            create: {
                 invoiceId: BigInt(invoiceId),
                 customFieldId: definition.id,
                 orgId: BigInt(orgId),
@@ -82,33 +97,37 @@ async function saveInvoiceCustomFields(tx, orgId, invoiceId, customFields) {
     }
 }
 
-async function previewInvoiceAI(file) {
+async function parseInvoice(file) {
     const { path, mimetype, originalname } = file;
-    //Excel 
+
+    let parsed;
+    let source = "gemini-vision";
+
     if (isExcelFile(mimetype, originalname)) {
-        const parsed = await aiService.parseInvoiceFromExcel(path);
-        return {
-            source: "gemini-vision-excel",
-            parsedData: parsed,
-            confidence: parsed.confidence || null,
-        };
+        parsed = await aiService.parseInvoiceFromExcel(path);
+        source = "gemini-vision-excel";
+    } else if (isCsvFile(mimetype, originalname)) {
+        parsed = await aiService.parseInvoiceFromCsv(path);
+        source = "gemini-vision-csv";
+    } else {
+        parsed = await aiService.parseInvoiceFromFile(path);
     }
 
-    if (isCsvFile(mimetype, originalname)) {
-        const parsed = await aiService.parseInvoiceFromCsv(path);
-        return {
-            source: "gemini-vision-csv",
-            parsedData: parsed,
-            confidence: parsed.confidence || null,
-        };
+    if (!parsed || !parsed.items?.length) {
+        throw new Error("Invoice parsing failed");
     }
 
+    // 🔥 Upload after successful parse
+    const buffer = await fs.promises.readFile(path);
+    const key = `invoices/${Date.now()}-${originalname}`;
+    await storage.upload(key, buffer, mimetype);
+    await fs.promises.unlink(path);
 
-    //Pdf and Image
-    const parsed = await aiService.parseInvoiceFromFile(path);
+    parsed.invoiceUrl = key;
+    parsed.receiptUrl = key; // Backwards/cross compatibility
 
     return {
-        source: "gemini-vision",
+        source,
         parsedData: parsed,
         confidence: parsed.confidence || null,
     };
@@ -117,8 +136,6 @@ async function previewInvoiceAI(file) {
 // STEP 2: SAVE CONFIRMED DATA
 async function saveInvoiceFromPreview(user, payload) {
     return await prisma.$transaction(async (tx) => {
-
-
         const subtotal = payload.subtotal ?? 0;
         const discount = payload.discount ?? 0;
         const taxAmount = payload.taxAmount ?? 0;
@@ -133,9 +150,22 @@ async function saveInvoiceFromPreview(user, payload) {
 
         const exchangeRate = payload.exchangeRate ?? 1;
         const baseAmount = totalAmount * exchangeRate;
-        const client =
-            payload.buyer
-                ? await tx.client.create({
+
+        let client = null;
+        if (payload.buyer) {
+            // Find existing client with same name or email under the same org
+            client = await tx.client.findFirst({
+                where: {
+                    orgId: BigInt(user.orgId),
+                    OR: [
+                        payload.buyer.email ? { email: payload.buyer.email } : null,
+                        { name: payload.buyer.name }
+                    ].filter(Boolean)
+                }
+            });
+
+            if (!client) {
+                client = await tx.client.create({
                     data: {
                         orgId: BigInt(user.orgId),
                         name: payload.buyer.name,
@@ -147,13 +177,13 @@ async function saveInvoiceFromPreview(user, payload) {
                         zipCode: payload.buyer.address?.zipCode,
                         country: payload.buyer.address?.country,
                         companyType: payload.buyer.companyType,
-                        gstin: payload.buyer.gstin,
                         taxId: payload.buyer.taxId,
                         taxSystem: payload.buyer.taxSystem ?? "NONE",
                         isActive: true,
                     },
-                })
-                : null;
+                });
+            }
+        }
 
         // 1️⃣ Create invoice
         const invoice = await tx.invoiceBill.create({
@@ -190,6 +220,10 @@ async function saveInvoiceFromPreview(user, payload) {
                 status: payload.status ?? "UNPAID",
                 category: payload.category ?? "OTHER",
                 confirmedAt: new Date(),
+
+                // 🧾 File linkage
+                pdfKey: payload.pdfKey ?? payload.invoiceUrl ?? payload.receiptUrl ?? null,
+                pdfStatus: (payload.pdfKey || payload.invoiceUrl || payload.receiptUrl) ? "READY" : "NOT_STARTED",
 
                 // 🧾 Seller snapshot (important for legal/history)
                 sellerName: payload.seller?.name,
@@ -237,13 +271,13 @@ async function saveInvoiceFromPreview(user, payload) {
                 await tx.invoiceBillItem.create({
                     data: {
                         invoiceId: invoice.id,
-                        itemName: item.name,
+                        itemName: item.name ?? "Item",
                         description: item.description,
                         quantity: item.quantity ?? 1,
                         unitType: item.unitType ?? "UNIT",
                         unitPrice: item.unitPrice ?? 0,
                         taxRate: item.taxRate ?? 0,
-                        totalPrice: item.itemTotal ?? 0,
+                        totalPrice: item.itemTotal ?? item.total ?? 0,
                     },
                 });
             }
@@ -251,7 +285,17 @@ async function saveInvoiceFromPreview(user, payload) {
 
         await saveInvoiceCustomFields(tx, user.orgId, invoice.id, payload.customFields);
 
-        return invoice;
+        return await tx.invoiceBill.findUniqueOrThrow({
+            where: { id: invoice.id },
+            include: {
+                items: true,
+                customFields: {
+                    include: {
+                        customField: true,
+                    },
+                },
+            },
+        });
     });
 }
 
@@ -588,7 +632,7 @@ async function confirmAndCreateInvoice(user, data, sendEmail = false) {
     // });
     if (!isDraft) {
         try {
-           const queueResponse =  await qstashService.publishInvoicePdfJob({
+            const queueResponse = await qstashService.publishInvoicePdfJob({
                 invoiceId: invoice.id,
                 sendEmail
             });
@@ -674,7 +718,6 @@ async function updateInvoice(user, id, data) {
                         zipCode: data.buyer.address?.zipCode,
                         country: data.buyer.address?.country,
                         companyType: data.buyer.companyType,
-                        gstin: data.buyer.gstin,
                         taxId: data.buyer.taxId,
                         taxSystem: data.buyer.taxSystem ?? "NONE",
                     },
@@ -693,7 +736,6 @@ async function updateInvoice(user, id, data) {
                         zipCode: data.buyer.address?.zipCode,
                         country: data.buyer.address?.country,
                         companyType: data.buyer.companyType,
-                        gstin: data.buyer.gstin,
                         taxId: data.buyer.taxId,
                         taxSystem: data.buyer.taxSystem ?? "NONE",
                         isActive: true,
@@ -1188,7 +1230,7 @@ module.exports = {
     saveInvoiceFromPreview,
     listInvoices,
     listInvoiceProducts,
-    previewInvoiceAI,
+    parseInvoice,
     confirmAndCreateInvoice,
     getInvoice,
     getSignedPdfUrl,

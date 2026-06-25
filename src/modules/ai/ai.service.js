@@ -132,6 +132,15 @@ function normalizeInvoice(data) {
       taxRate: Number(item.taxRate || 0),
       total: Number(item.total || 0),
     })),
+
+    customFields: Array.isArray(data.customFields)
+      ? data.customFields
+          .map((cf) => ({
+            name: cf?.name?.trim() ?? null,
+            value: cf?.value != null ? String(cf.value).trim() : null,
+          }))
+          .filter((cf) => cf.name && cf.value !== null)
+      : [],
   };
 }
 
@@ -361,6 +370,7 @@ async function callGeminiVision(prompt, filePath) {
     data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
+    console.error("❌ Gemini Vision API Error response:", JSON.stringify(data, null, 2));
     throw new Error("Gemini returned empty response");
   }
 
@@ -390,6 +400,7 @@ async function callGeminiText(prompt) {
     data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
+    console.error("❌ Gemini Text API Error response:", JSON.stringify(data, null, 2));
     throw new Error("Gemini returned empty response");
   }
 

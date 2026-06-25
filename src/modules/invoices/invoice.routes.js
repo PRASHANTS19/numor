@@ -1,28 +1,29 @@
 const router = require('express').Router();
 const auth = require('../../middlewares/auth.middleware');
-const {upload} = require('../../config/upload');
+const { upload } = require('../../config/upload');
 const { requirePermission } = require('../../middlewares/permission.middleware');
 const controller = require('./invoice.controller');
-
-// router.post(
-//   '/ocr/uploadInvoice',
-//   auth,
-//   upload.single('file'),
-//   controller.previewOCR
-// );
-router.get(
-  "/export",
-  auth,
-  requirePermission('income', 'read'),
-  controller.exportInvoices
-);
 
 router.post(
   '/parseInvoice',
   auth,
   requirePermission('income', 'write'),
   upload.single('file'),
-  controller.previewInvoice
+  controller.parseInvoice
+);
+
+router.post(
+  '/confirmAndSaveInvoice',
+  auth,
+  requirePermission('income', 'write'),
+  controller.confirmAndSaveInvoice
+)
+
+router.get(
+  "/export",
+  auth,
+  requirePermission('income', 'read'),
+  controller.exportInvoices
 );
 
 // router.post(
@@ -60,15 +61,15 @@ router.post(
 )
 
 router.get(
-  '/:id', 
-  auth, 
+  '/:id',
+  auth,
   requirePermission('income', 'read'),
   controller.getInvoice
 );
 
 router.get(
   '/:id/pdf',
-  auth, 
+  auth,
   requirePermission('income', 'read'),
   controller.getInvoicePdf
 );

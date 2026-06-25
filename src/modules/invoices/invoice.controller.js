@@ -1,29 +1,36 @@
-// invoice.controller.js
-const { ca } = require('zod/locales');
 const invoiceService = require('./invoice.service');
 
+exports.parseInvoice = async function (req, res) {
+  try {
+    const result = await invoiceService.parseInvoice(req.file);
 
-exports.previewInvoice = async function (req, res) {
-  // const filePath = req.file.path;
-  const result = await invoiceService.previewInvoiceAI(req.file);
-
-  res.json({
-    success: true,
-    data: result,
-  });
+    res.json({
+      success: true,
+      data: result,
+    });
+  }
+  catch (err) {
+    console.error('Error in parseInvoice:', err);
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
+  }
 }
 
 exports.confirmAndSaveInvoice = async function (req, res) {
   try {
     const payload = req.body;
     const user = req.user; // from auth middleware
-
     const invoice = await invoiceService.saveInvoiceFromPreview(user, payload);
 
-    res.json({ success: true, invoice });
+    res.json({
+      success: true,
+      invoice
+    });
   } catch (err) {
     console.error('Error in confirmOCR:', err);
-    res.status(400).json({
+    res.status(500).json({
       success: false,
       message: err.message,
     });

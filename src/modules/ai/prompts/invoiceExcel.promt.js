@@ -20,6 +20,8 @@ Hints:
 - "GSTIN/UIN" → gstin
 - "Ledger" / "Stock Item" → item.name
 - GST may be CGST/SGST or IGST (never both)
+- Any other specific fields, custom attributes, or non-standard headers from the Excel rows should be captured inside the "customFields" array.
+
 
 Invoice JSON format:
 ${require("./invoice.prompt")}

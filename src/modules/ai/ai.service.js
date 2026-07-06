@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+// Native fetch is used (Node v18+) — no node-fetch needed
 const invoicePrompt = require('./prompts/invoice.prompt');
 const expensePromt = require('./prompts/expense.prompt');
 const fs = require("fs");
@@ -135,11 +135,11 @@ function normalizeInvoice(data) {
 
     customFields: Array.isArray(data.customFields)
       ? data.customFields
-          .map((cf) => ({
-            name: cf?.name?.trim() ?? null,
-            value: cf?.value != null ? String(cf.value).trim() : null,
-          }))
-          .filter((cf) => cf.name && cf.value !== null)
+        .map((cf) => ({
+          name: cf?.name?.trim() ?? null,
+          value: cf?.value != null ? String(cf.value).trim() : null,
+        }))
+        .filter((cf) => cf.name && cf.value !== null)
       : [],
   };
 }
@@ -327,6 +327,7 @@ async function parseExpenseFromFile(filePath) {
 
   try {
     const raw = await callGeminiVision(prompt, filePath);
+    console.log(raw)
     return normalizeExpense(raw);
   } catch (err) {
     console.error("❌ GEMINI EXPENSE ERROR:", err);
@@ -336,9 +337,7 @@ async function parseExpenseFromFile(filePath) {
 
 async function callGeminiVision(prompt, filePath) {
   const mimeType = getMimeType(filePath);
-  const fileBase64 = fs.readFileSync(filePath, {
-    encoding: "base64",
-  });
+  const fileBase64 = fs.readFileSync(filePath, { encoding: "base64" });
 
   const response = await fetch(
     `${process.env.GEMINI_ENDPOINT}?key=${process.env.GEMINI_API_KEY}`,
@@ -364,10 +363,16 @@ async function callGeminiVision(prompt, filePath) {
     }
   );
 
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "(unreadable body)");
+    throw new Error(
+      `Gemini API error ${response.status} ${response.statusText}: ${errBody}`
+    );
+  }
+
   const data = await response.json();
 
-  const text =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
     console.error("❌ Gemini Vision API Error response:", JSON.stringify(data, null, 2));
@@ -394,10 +399,16 @@ async function callGeminiText(prompt) {
     }
   );
 
+  if (!response.ok) {
+    const errBody = await response.text().catch(() => "(unreadable body)");
+    throw new Error(
+      `Gemini API error ${response.status} ${response.statusText}: ${errBody}`
+    );
+  }
+
   const data = await response.json();
 
-  const text =
-    data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
 
   if (!text) {
     console.error("❌ Gemini Text API Error response:", JSON.stringify(data, null, 2));
@@ -414,7 +425,7 @@ function getMimeType(filePath) {
   switch (ext) {
     case ".jpg":
     case ".jpeg":
-    case ".jfif": 
+    case ".jfif":
       return "image/jpeg";
     case ".png":
       return "image/png";

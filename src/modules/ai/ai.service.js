@@ -326,6 +326,7 @@ async function parseExpenseFromFile(filePath) {
   const prompt = expensePromptVision;
 
   try {
+    console.log("gemini is getting called")
     const raw = await callGeminiVision(prompt, filePath);
     console.log(raw)
     return normalizeExpense(raw);
@@ -339,29 +340,39 @@ async function callGeminiVision(prompt, filePath) {
   const mimeType = getMimeType(filePath);
   const fileBase64 = fs.readFileSync(filePath, { encoding: "base64" });
 
-  const response = await fetch(
-    `${process.env.GEMINI_ENDPOINT}?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inline_data: {
-                  mime_type: mimeType,
-                  data: fileBase64,
+  const geminiUrl = `${process.env.GEMINI_ENDPOINT}?key=${process.env.GEMINI_API_KEY}`;
+  console.log("[Gemini Vision] Calling URL:", process.env.GEMINI_ENDPOINT ? "[endpoint set]" : "❌ GEMINI_ENDPOINT is undefined");
+  console.log("[Gemini Vision] API Key set:", process.env.GEMINI_API_KEY ? "✅" : "❌ MISSING");
+
+  let response;
+  try {
+    response = await fetch(
+      geminiUrl,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  inline_data: {
+                    mime_type: mimeType,
+                    data: fileBase64,
+                  },
                 },
-              },
-            ],
-          },
-        ],
-      }),
-    }
-  );
+              ],
+            },
+          ],
+        }),
+      }
+    );
+  } catch (fetchErr) {
+    console.error("[Gemini Vision] Network error:", fetchErr?.cause || fetchErr?.message || fetchErr);
+    throw fetchErr;
+  }
 
   if (!response.ok) {
     const errBody = await response.text().catch(() => "(unreadable body)");

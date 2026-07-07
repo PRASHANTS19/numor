@@ -94,12 +94,20 @@ exports.previewExpenseAI = async function (file) {
   }
 
   // 🔥 Upload after successful parse
+  let receiptKey = null;
   const buffer = await fs.promises.readFile(path);
   const key = `expenses/${Date.now()}-${originalname}`;
-  await storageService.upload(key, buffer);
-  await fs.promises.unlink(path); 
 
-  parsed.receiptUrl = key;
+  try {
+    await storageService.upload(key, buffer);
+    receiptKey = key;
+  } catch (uploadErr) {
+    console.warn("⚠️ Receipt upload to storage failed (non-fatal):", uploadErr?.message || uploadErr);
+  } finally {
+    await fs.promises.unlink(path).catch(() => {});
+  }
+
+  parsed.receiptUrl = receiptKey;
 
   return {
     source,

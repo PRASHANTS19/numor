@@ -1,0 +1,23 @@
+# Numor Platform Overview
+
+## What is Numor?
+Numor is a digital platform designed to bridge the gap between Small and Medium Enterprises (SMEs) and Chartered Accountants (CAs). The platform offers a unified suite of tools for business management—including invoice creation, receipt parsing and expense logging via Optical Recognition (OCR), and dashboard analytics—while simultaneously providing a booking platform for professional financial consultation and accounting services.
+
+## What are the User Types and Roles in Numor?
+Numor supports three main user types and roles:
+1.  **SME User (SME_USER):** The business owner or employee managing a specific organization. They can create invoices, log expenses, add clients, and book CA consultation slots.
+2.  **Chartered Accountant (CA_USER):** A financial professional offering services. CAs can set up profiles, define weekly availability, connect their Google Calendar, handle consultations, and view performance analytics.
+3.  **Admin (ADMIN):** Platform administrators who manage user approvals, review pending CA profiles/documents, and verify credentials before CAs go live on the platform.
+
+## What is an Organization in Numor?
+An Organization represents the business entity of an SME. All users, clients, invoices, expenses, and custom invoice fields are scoped to an Organization. When an SME user signs up, they either create a new Organization or are invited to join an existing one by an Organization Owner. 
+
+## How does User Invitation work in Numor?
+Organization owners can invite colleagues or team members to join their organization. An invitation sends a unique token to the recipient's email. When accepted, the user is added to the organization with predefined JSON permissions representing their role access (e.g. read/write permissions for invoices or expenses).
+
+## What are Feature Flags in Numor?
+Numor utilizes feature flags to control access to different modules of the platform dynamically. These include:
+-  **SME_CORE:** Controls access to core SME features (Auth, Users, Organizations, Clients, Invoices, Expenses, and Dashboard).
+-  **CA_CONNECT:** Controls access to the CA Profile, CA Reviews, and CA Booking slots.
+-  **AI_CHATBOT:** Toggles availability of the AI-powered chatbot.
+-  **CA_ADMIN:** Restricts administrative endpoints to verified system admins.

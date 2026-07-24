@@ -1,0 +1,30 @@
+# Invoices and Clients in Numor
+
+## How does Client Management work in Numor?
+Clients are business partners to whom an Organization issues invoices. The Client schema logs essential information including business name, contact details (email, phone, address), currency requirements, and their active tax system configuration (GST, VAT, Sales, or None). Setting up a client profile correctly ensures that all outgoing invoices respect their localization and tax systems.
+
+## How are Invoices created and managed in Numor?
+Invoices are captured via the `InvoiceBill` and `InvoiceBillItem` models. Each invoice records:
+-  **Header Details:** Invoice number, issue date, payment due date, exchange rates, billing currency, and payment terms.
+-  **Seller/Buyer info:** Address, contact information, email, phone, and Tax ID.
+-  **Financial Totals:** Subtotal, discount amount, shipping costs, tax amount, paid amount, and outstanding balance due.
+-  **Status Tracking:** Current status of the invoice, marked as `UNPAID`, `PAID`, `VOID`, etc.
+
+## What Tax Systems are supported for Invoices?
+Numor supports multiple tax regimes to serve localized business rules:
+1.  **GST (Goods and Services Tax):** Primarily designed for Indian compliance, supporting CGST (Central), SGST (State), IGST (Integrated for inter-state sales), Place of Supply, reverse charges, SAC/HSN codes, and LUT (Letter of Undertaking) filing status for export invoices.
+2.  **VAT (Value Added Tax):** Commonly configured for European and UK businesses, applying standard percentage-based consumption taxes.
+3.  **Sales Tax:** Used for state-level or retail-level sales taxes in the US and other countries.
+4.  **None:** For tax-exempt services, clients, or specific trade arrangements.
+
+## What is the place of supply and LUT filed options?
+-  **Place of Supply:** Crucial for GST invoices, it determines whether CGST + SGST (intra-state transaction) or IGST (inter-state transaction) is charged based on the buyer's and seller's physical states.
+-  **LUT Filed (Letter of Undertaking):** Toggled to true when exporting goods or services under GST without paying tax. Setting this ensures the tax rate is automatically applied as 0% for eligible exports.
+
+## How are Invoice Custom Fields used?
+Businesses often need custom data on invoices (e.g. Purchase Order numbers, special licensing keys, project tags). Numor allows organizations to define custom fields via `CustomFieldDefinition` (which can list pre-defined options). When creating or updating an invoice, users specify custom values for these attributes via the `InvoiceCustomFieldValue` model.
+
+## How do users export or view Invoice PDFs?
+SME Users can:
+-  **Stream PDF generation:** Numor compiles PDF outputs asynchronously, letting users track formatting status in real-time via Server-Sent Events (SSE).
+-  **Export Records:** Export invoice spreadsheets in bulk to CSV or XLSX (Excel) file formats for secondary auditing or external ledger uploads.

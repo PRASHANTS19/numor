@@ -1,0 +1,17 @@
+# Expense Tracking and OCR in Numor
+
+## How does Expense Management work in Numor?
+Expense tracking allows businesses to document their cash outflows. Using the `ExpenseBill` and `ExpenseBillItem` models, users can log merchant details, the date of purchase, category, payment method, total amount, taxes, and individual item descriptions, quantities, unit prices, and tax rates.
+
+## How does Receipt Upload and OCR Parsing work?
+To save time and prevent manual data entry errors, Numor supports receipt scanning:
+1.  **File Upload:** The user uploads a receipt image (JPEG, PNG) or PDF of their purchase receipt.
+2.  **Optical Character Recognition (OCR):** Numor runs OCR extraction on the file using the local Tesseract.js engine (utilizing the `eng.traineddata` language pack).
+3.  **AI Field Parsing:** The extracted text blocks are processed using LLM APIs (Gemini/Langchain) to structure raw text into structured fields: merchant name, transaction date, subtotal, tax amount, and total bill amounts.
+4.  **Confirm & Save:** A preview of the extracted data is presented to the user. The user can correct any parsed details and then confirm to write the expense directly to the database.
+
+## What is OCR Confidence?
+When receipts are processed via OCR, Numor logs the `ocrConfidence` score (a decimal value). This helps track how cleanly the characters were scanned from the receipt file. Low confidence scans are flagged so that users can verify accuracy manually before saving.
+
+## What are Expense Categories?
+Expenses are organized under specific categories (such as Travel, Office Utilities, Rent, Salaries, Meals, Software Licensing, or Other). This classification enables the system to calculate KPI metrics and display clean dashboard graphs showing where the organization's money is being spent.

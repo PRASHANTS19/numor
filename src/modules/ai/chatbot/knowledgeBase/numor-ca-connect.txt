@@ -1,0 +1,33 @@
+# CA Connect: Chartered Accountant Bookings
+
+## What is CA Connect?
+CA Connect is an integrated scheduling and consulting marketplace in Numor. It allows SME users to find, review, and book professional consultation slots with verified Chartered Accountants (CAs).
+
+## How does a CA configure their Profile?
+A CA has a specialized profile (`CAProfile`) containing:
+-  **Credentials:** Registration number (monitored for regulatory compliance) and years of professional experience.
+-  **Billing:** Hourly fee and applicable tax percentages.
+-  **Biographical details:** Written bio, languages spoken, and professional specializations (e.g. corporate tax, audit, GST advice).
+-  **Integrations:** Social numbers (WhatsApp), calendar setup (Cal.com, Calendly, or Google Calendar sync details).
+
+## How do CAs manage availability slots?
+CAs define repeating weekly availability slots via the `CASlot` model:
+-  **Scheduling details:** Specific day of the week (Monday through Sunday) and start/end time.
+-  **Type of call:** Phone, Video (Zoom/Google Meet), or Both.
+-  **Slot Status:** Indicates availability, such as `AVAILABLE`, `HOLD` (temporarily blocked during checkout), or `BOOKED`.
+
+## How does booking a consultation work?
+SME Users browse the directory of available CAs, view ratings/reviews, select a slot, and initiate a booking:
+1.  **Booking Code:** A unique `CABooking` code is generated, and the slot status transitions to a temporary hold.
+2.  **Payment Gateway:** Payment details are handled by `CAPayment`. The booking status stays as `PAYMENT_PENDING` until confirmation is received from the payment gateway.
+3.  **Booking Confirmed:** Once paid, the booking transitions to `CONFIRMED` status, and an automated meeting link is generated (incorporating Zoom, Cal.com, or Google Meet integration).
+4.  **Google Calendar Sync:** If the CA has connected their Google Calendar account (`googleCalendarConnected` is true), Numor uses the Google Calendar API to automatically schedule the event, create a conference link, and notify both parties.
+
+## What is the Admin approval workflow for CAs?
+To guarantee regulatory standards and prevent unverified accountants from consulting:
+-  **Pending profile:** When a CA creates or updates their registration details, experience, registration number, or hourly fees, the updates are saved into a pending model (`CAProfilePending` and `CADocumentPending`).
+-  **Document Uploads:** CAs upload certification documents or identification proofs (`CADocumentType` including `CERTIFICATION` and `ID_PROOF`).
+-  **Admin Review:** A system admin reviews the documents, comments on verification statuses (`caProfile.status` transitions from `PENDING` -> `UNDER_REVIEW`), and approves (`APPROVED`) or rejects (`REJECTED`) the CA. Only approved profiles go live in the public directory.
+
+## How do reviews and ratings work?
+After a consultation booking is marked as `COMPLETED`, the SME user can submit a review (`CAReview`). Reviews require a numeric rating (1-5) and an optional comment. Numor recalculates the CA's average rating (`ratingAvg`) and total review count (`ratingCount`) dynamically, helping other users make informed decisions.

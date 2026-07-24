@@ -112,6 +112,7 @@ async function registerUser(data) {
                 authProvider: 'LOCAL',
                 userType: 'INTERNAL',
                 role: user.role || 'SME_USER',
+                isOrgOwner: true,
             },
             include: {
                 organization: true,
@@ -264,6 +265,7 @@ async function googleAuth(code, user_type_for_signup) {
                 authProvider: "GOOGLE",
                 userType: "INTERNAL",
                 role: role ?? "SME_USER",
+                isOrgOwner: true,
             },
         });
     }
@@ -389,6 +391,7 @@ async function linkedinAuth(code, user_type_for_signup) {
                 authProvider: "LINKEDIN",
                 userType: "INTERNAL",
                 role: role ?? "SME_USER",
+                isOrgOwner: true,
             },
         });
     }

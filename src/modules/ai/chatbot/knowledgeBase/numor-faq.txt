@@ -1,0 +1,44 @@
+# Numor Frequently Asked Questions (FAQ)
+
+## What is Numor?
+Numor is an all-in-one financial management and CA consultancy platform. It enables Small and Medium Enterprises (SMEs) to track income and expenses, scan invoices using AI, and consult with Chartered Accountants.
+
+## How do I sign up and create my Organization?
+When you first sign up for a Numor account, you will be prompted to create your Organization profile. Enter details like your business name, email, Tax ID, address, and upload your logo. This organization profile is automatically used to populate the header of all outgoing invoices.
+
+## How can I invite team members to my Organization?
+Go to Organization Settings, enter the email address of the user you want to invite, and select their access permissions. An invitation email with a secure registration link will be sent to them. Once they click and accept, they will join your organization under the assigned roles.
+
+## How do I issue a GST invoice?
+To issue a GST invoice:
+1.  Make sure your customer is added under Clients with their tax system set to `GST`.
+2.  Set the Place of Supply on the invoice (this determines whether CGST+SGST or IGST is applied).
+3.  Add line items containing the appropriate quantity, unit price, and GST tax percentage (e.g. 5%, 12%, 18%, 28%).
+4.  If exporting tax-free services, make sure you toggle `LUT Filed` (Letter of Undertaking) to True.
+
+## How does the OCR receipt scanner extract expense information?
+When you upload a PNG, JPEG, or PDF of a purchase receipt:
+-  Tesseract OCR reads the image characters.
+-  Our integrated AI module parses the text to identify fields like merchant name, purchase date, line items, and invoice totals.
+-  You will see a confirmation screen with the pre-filled fields. Verify the details, select the appropriate expense category (e.g. Travel, Utilities, Office), and click save.
+
+## How do I view my business health/KPIs?
+Numor automatically builds dashboard metrics from your invoice records and expense statements. You can monitor:
+-  **Net Cash Flow:** Calculated as total income minus total expenses.
+-  **Outstanding Receivables:** Uncollected payments from outstanding invoices.
+-  **Expense Growth:** Week-over-week or month-over-month trend indicators.
+-  **Overdue Invoices:** Invoices that have passed their due date without being paid.
+
+## I am a CA. How do I start consulting on Numor?
+As a Chartered Accountant user:
+1.  Fill out your CA Profile with your bio, Hourly Fee, and specializations.
+2.  Upload your registration certificate or ID proof under documents.
+3.  Submit your profile. It will transition to `UNDER_REVIEW` state.
+4.  Once the platform admin verifies your credentials and approves your profile, you will appear in the directory.
+5.  Go to Slots Management to set your weekly availability so SME users can book sessions.
+
+## How does Google Calendar integration work for CAs?
+Under your CA profile settings, click "Connect Google Calendar." Authenticate using your Google Account. Once connected, booking slots that SME users select will be automatically posted to your Google Calendar, generating secure meeting links (Zoom or Google Meet) and sending email invites to the user.
+
+## How do I export my invoice or expense reports?
+In the Invoice and Expense lists, click the "Export" button. You can choose to download the files as a spreadsheet (.xlsx) or comma-separated value (.csv) file for easy importing into external systems.
